@@ -6,6 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "extra": {
+      "supabaseUrl": "https://uelxwqpvjdrkxsgotoia.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdXBhYmFzZSI6InJlYW5lciIsImFjY291bnQiOiJwZW9wbGUiLCJ1c2VyX2lkIjoiMTIzNDU2IiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MzEzMTAwMDB9.abc123def456ghi789jkl0"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -15,8 +19,7 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
