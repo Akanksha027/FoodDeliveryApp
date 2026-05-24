@@ -51,10 +51,15 @@ export const LoginScreen = ({ navigation }: any) => {
         const redirectUrl = Linking.createURL('login');
         console.log('[Auth] Generated native redirect URL:', redirectUrl);
 
+        // Retrieve the backend ngrok base URL from environment variables, fallback to localhost:3000
+        const backendBaseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+        const proxyRedirectUrl = `${backendBaseUrl}/?mobileRedirect=${encodeURIComponent(redirectUrl)}`;
+        console.log('[Auth] Using backend redirection proxy:', proxyRedirectUrl);
+
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: redirectUrl,
+            redirectTo: proxyRedirectUrl,
             skipBrowserRedirect: true,
           },
         });
