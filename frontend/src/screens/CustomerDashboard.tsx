@@ -1,4 +1,3 @@
-// src/screens/CustomerDashboard.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -19,6 +18,8 @@ import {
   TextInput,
   Image,
 } from 'react-native';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { clearSession } from '../utils/session';
 import {
@@ -63,6 +64,26 @@ const STATUS_COLORS: Record<string, string> = {
   ready: '#8B5CF6',
   delivered: '#16A34A',
   cancelled: '#EF4444',
+};
+
+// ─── Location & Delivery Boundary Constants ───────────────────
+const STORE_LAT = 28.6692; // Ghaziabad Kitchen coordinates
+const STORE_LON = 77.4538;
+const MAX_DELIVERY_RADIUS_KM = 6.0;
+
+// Haversine formula to compute exact distance in Kilometers
+const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) *
+      Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 };
 
 const CATEGORIES = [
@@ -208,10 +229,42 @@ export const CustomerDashboard = ({ navigation }: any) => {
   const [state, setState] = useState('');
   const [postalCode, setPostalCode] = useState('');
 
+  // ─── Location State Hooks ─────────────────────────────────
+  const [locationState, setLocationState] = useState<'checking' | 'requesting' | 'detecting' | 'valid' | 'out_of_range' | 'manual_input'>('checking');
+  const [detectedLocation, setDetectedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+    distance: number;
+  } | null>(null);
+  const [manualAddressInput, setManualAddressInput] = useState('');
+  const [manualSearchLoading, setManualSearchLoading] = useState(false);
+  const [manualSearchError, setManualSearchError] = useState('');
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
+
+      // Load persisted location from AsyncStorage
+      try {
+        const savedLoc = await AsyncStorage.getItem('@delivery_location');
+        if (savedLoc) {
+          const parsed = JSON.parse(savedLoc);
+          if (parsed && parsed.valid) {
+            setDetectedLocation(parsed);
+            setLocationState('valid');
+          } else {
+            setLocationState('requesting');
+          }
+        } else {
+          setLocationState('requesting');
+        }
+      } catch (e) {
+        console.error('Failed to load saved location:', e);
+        setLocationState('requesting');
+      }
+
       if (user) {
         await loadData(user.id);
       } else {
@@ -220,6 +273,119 @@ export const CustomerDashboard = ({ navigation }: any) => {
     };
     init();
   }, []);
+
+  // GPS Automatic Location Detection Handler
+  const handleDetectGPS = async () => {
+    setLocationState('detecting');
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission Required',
+          'Please grant GPS permission to automatically detect your coordinates, or type your address manually.',
+          [
+            { text: 'Try Manual Input', onPress: () => setLocationState('manual_input') },
+            { text: 'Cancel', style: 'cancel', onPress: () => setLocationState('requesting') }
+          ]
+        );
+        return;
+      }
+
+      const currentPos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      });
+      const { latitude, longitude } = currentPos.coords;
+
+      const distance = getDistanceInKm(latitude, longitude, STORE_LAT, STORE_LON);
+
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+      let addressString = 'Ghaziabad, India';
+      if (geocode && geocode[0]) {
+        const item = geocode[0];
+        const parts = [
+          item.name || item.street || '',
+          item.district || item.subregion || item.city || ''
+        ].filter(Boolean);
+        addressString = parts.length > 0 ? parts.join(', ') : 'Detected GPS Address';
+      }
+
+      const locationDetails = {
+        latitude,
+        longitude,
+        address: addressString,
+        distance: parseFloat(distance.toFixed(2)),
+        valid: distance <= MAX_DELIVERY_RADIUS_KM
+      };
+
+      setDetectedLocation(locationDetails);
+
+      if (locationDetails.valid) {
+        await AsyncStorage.setItem('@delivery_location', JSON.stringify(locationDetails));
+        setLocationState('valid');
+        Alert.alert('📍 Location Set Successfully', `Delivering to: ${addressString}`);
+      } else {
+        setLocationState('out_of_range');
+      }
+    } catch (e: any) {
+      console.error('GPS Detection failed:', e);
+      Alert.alert('GPS Detection Failed', 'We could not fetch your coordinates. Please try again or enter your address manually.');
+      setLocationState('requesting');
+    }
+  };
+
+  // Manual Geocode Address Search Handler
+  const handleManualSearch = async () => {
+    if (!manualAddressInput.trim()) {
+      setManualSearchError('Please type a valid address.');
+      return;
+    }
+    setManualSearchLoading(true);
+    setManualSearchError('');
+    try {
+      const result = await Location.geocodeAsync(manualAddressInput);
+      if (result && result.length > 0) {
+        const { latitude, longitude } = result[0];
+        const distance = getDistanceInKm(latitude, longitude, STORE_LAT, STORE_LON);
+
+        const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+        let addressString = manualAddressInput;
+        if (geocode && geocode[0]) {
+          const item = geocode[0];
+          const parts = [
+            item.name || item.street || '',
+            item.district || item.subregion || item.city || ''
+          ].filter(Boolean);
+          addressString = parts.length > 0 ? parts.join(', ') : manualAddressInput;
+        }
+
+        const locationDetails = {
+          latitude,
+          longitude,
+          address: addressString,
+          distance: parseFloat(distance.toFixed(2)),
+          valid: distance <= MAX_DELIVERY_RADIUS_KM
+        };
+
+        setDetectedLocation(locationDetails);
+
+        if (locationDetails.valid) {
+          await AsyncStorage.setItem('@delivery_location', JSON.stringify(locationDetails));
+          setManualAddressInput('');
+          setLocationState('valid');
+          Alert.alert('📍 Location Set Successfully', `Delivering to: ${addressString}`);
+        } else {
+          setManualSearchError(`This address is ${locationDetails.distance} km away from our kitchen and is out of our ${MAX_DELIVERY_RADIUS_KM}km delivery radius.`);
+          setLocationState('out_of_range');
+        }
+      } else {
+        setManualSearchError('Address not found. Please verify the address and try again.');
+      }
+    } catch (e) {
+      console.error('Manual search failed:', e);
+      setManualSearchError('Failed to geocode address. Please make sure you are connected to the internet.');
+    }
+    setManualSearchLoading(false);
+  };
 
   // Refresh cart quietly when coming back from other screens (like ItemDetail)
   useFocusEffect(
@@ -596,12 +762,193 @@ export const CustomerDashboard = ({ navigation }: any) => {
 
   const selectedAddressObj = addresses.find(a => a.id === selectedAddressId);
 
-  if (loading) {
+  if (locationState === 'checking' || loading) {
     return (
       <View style={s.center}>
         <ActivityIndicator size="large" color={T.accent} />
-        <Text style={s.loadingText}>Fetching dynamic menus...</Text>
+        <Text style={s.loadingText}>Configuring secure delivery zones...</Text>
       </View>
+    );
+  }
+
+  if (locationState === 'requesting' || locationState === 'detecting') {
+    return (
+      <SafeAreaView style={[s.safe, { backgroundColor: T.dark }]}>
+        <StatusBar barStyle="light-content" backgroundColor={T.dark} />
+        <View style={[s.root, isWeb && s.webWrapper, { justifyContent: 'center', padding: 24, backgroundColor: T.dark }]}>
+          <View style={{ alignItems: 'center', marginBottom: 40 }}>
+            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,90,48,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+              <Text style={{ fontSize: 64 }}>📍</Text>
+            </View>
+            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', textAlign: 'center', marginBottom: 12 }}>
+              Delivery Location Required
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 }}>
+              To view the menu and order fresh meals, please share your location. We deliver within a strict 6km boundary of our Ghaziabad kitchen.
+            </Text>
+          </View>
+
+          {locationState === 'detecting' ? (
+            <View style={{ alignItems: 'center', marginVertical: 20 }}>
+              <ActivityIndicator size="large" color={T.accent} />
+              <Text style={{ color: '#fff', marginTop: 16, fontSize: 15, fontWeight: '600' }}>
+                Detecting coordinates via GPS...
+              </Text>
+            </View>
+          ) : (
+            <View style={{ gap: 14 }}>
+              <TouchableOpacity
+                style={{ backgroundColor: '#CCFF00', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', ...shadow(4) }}
+                onPress={handleDetectGPS}
+                activeOpacity={0.8}
+              >
+                <Text style={{ color: '#111', fontWeight: '850', fontSize: 16 }}>
+                  📍 Share Current Location (GPS)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}
+                onPress={() => setLocationState('manual_input')}
+                activeOpacity={0.8}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                  ✍️ Enter Address Manually
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (locationState === 'out_of_range') {
+    return (
+      <SafeAreaView style={[s.safe, { backgroundColor: T.dark }]}>
+        <StatusBar barStyle="light-content" backgroundColor={T.dark} />
+        <View style={[s.root, isWeb && s.webWrapper, { justifyContent: 'center', padding: 24, backgroundColor: T.dark }]}>
+          <View style={{ alignItems: 'center', marginBottom: 32 }}>
+            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(239,68,68,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+              <Text style={{ fontSize: 64 }}>🛵❌</Text>
+            </View>
+            <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', marginBottom: 12 }}>
+              Out of Delivery Range
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 }}>
+              Our central kitchen is located in Ghaziabad and can only deliver fresh meals within a 6km radius.
+            </Text>
+          </View>
+
+          {detectedLocation && (
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 32 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+                Detected Location
+              </Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '750', marginBottom: 10 }}>
+                📍 {detectedLocation.address}
+              </Text>
+              <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 10 }} />
+              <Text style={{ color: T.accent, fontSize: 15, fontWeight: '800' }}>
+                📏 Distance: {detectedLocation.distance} km away (Exceeds 6km limit)
+              </Text>
+            </View>
+          )}
+
+          <View style={{ gap: 14 }}>
+            <TouchableOpacity
+              style={{ backgroundColor: T.accent, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', ...shadow(4) }}
+              onPress={() => setLocationState('manual_input')}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                ✍️ Enter a Ghaziabad Address
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}
+              onPress={handleDetectGPS}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                🔄 Re-detect GPS Location
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (locationState === 'manual_input') {
+    return (
+      <SafeAreaView style={[s.safe, { backgroundColor: T.dark }]}>
+        <StatusBar barStyle="light-content" backgroundColor={T.dark} />
+        <View style={[s.root, isWeb && s.webWrapper, { padding: 24, backgroundColor: T.dark, justifyContent: 'space-between' }]}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 30 }}>
+            <TouchableOpacity
+              style={{ alignSelf: 'flex-start', paddingVertical: 10, paddingRight: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}
+              onPress={() => setLocationState('requesting')}
+            >
+              <Text style={{ color: T.accent, fontSize: 18, marginRight: 6 }}>←</Text>
+              <Text style={{ color: T.accent, fontSize: 16, fontWeight: '700' }}>Back</Text>
+            </TouchableOpacity>
+
+            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginBottom: 10 }}>
+              Enter Address
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 20, marginBottom: 24 }}>
+              Enter a delivery location in Ghaziabad (e.g. "Kavi Nagar", "Raj Nagar", or "Sector 15, Ghaziabad") to confirm it is within range.
+            </Text>
+
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+              Delivery Street or Sector
+            </Text>
+            <TextInput
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, height: 56, color: '#fff', paddingHorizontal: 16, fontSize: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12 }}
+              placeholder="e.g. Kavi Nagar, Ghaziabad"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={manualAddressInput}
+              onChangeText={(text) => {
+                setManualAddressInput(text);
+                setManualSearchError('');
+              }}
+            />
+
+            {manualSearchError ? (
+              <View style={{ backgroundColor: 'rgba(239,68,68,0.1)', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', marginBottom: 20 }}>
+                <Text style={{ color: '#EF4444', fontSize: 13, lineHeight: 18, fontWeight: '600' }}>
+                  ⚠️ {manualSearchError}
+                </Text>
+              </View>
+            ) : null}
+
+            {manualSearchLoading ? (
+              <ActivityIndicator size="large" color={T.accent} style={{ marginVertical: 20 }} />
+            ) : (
+              <TouchableOpacity
+                style={{ backgroundColor: '#CCFF00', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginTop: 10, ...shadow(4) }}
+                onPress={handleManualSearch}
+                activeOpacity={0.8}
+              >
+                <Text style={{ color: '#111', fontWeight: '850', fontSize: 16 }}>
+                  🔍 Search & Validate Address
+                </Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+
+          <TouchableOpacity
+            style={{ borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}
+            onPress={() => setLocationState('requesting')}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontWeight: '700', fontSize: 15 }}>
+              📍 Detect Coordinates (GPS)
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -619,10 +966,17 @@ export const CustomerDashboard = ({ navigation }: any) => {
             <>
               {/* ── Header ── */}
               <View style={s.foodHomeHeader}>
-                <View style={s.locationRow}>
+                <TouchableOpacity
+                  style={s.locationRow}
+                  activeOpacity={0.7}
+                  onPress={() => setLocationState('requesting')}
+                >
                   <Image source={require('../../assets/navigation.png')} style={s.locationIconImg} resizeMode="contain" />
-                  <Text style={s.locationText}>New York</Text>
-                </View>
+                  <Text style={[s.locationText, { maxWidth: ACTUAL_LAYOUT_W - 120 }]} numberOfLines={1}>
+                    {detectedLocation?.address || 'Set Location'}
+                  </Text>
+                  <Text style={{ fontSize: 12, marginLeft: 4, color: T.accent }}>▼</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={s.heartCircle} activeOpacity={0.75} onPress={() => setActiveNav('cart')}>
                   <Image source={require('../../assets/tabs/cart.png')} style={s.heartCircleIconImg} resizeMode="contain" />
                   {cartCount > 0 && <View style={s.notifPip} />}
