@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
       payment_status = 'pending',
       razorpay_order_id = null,
       razorpay_payment_id = null,
+      promo_code = null,
+      discount_amount = 0.00,
     } = body;
 
     if (!customer_id || !items || !total) {
@@ -40,6 +42,8 @@ export async function POST(req: NextRequest) {
         payment_status,
         razorpay_order_id,
         razorpay_payment_id,
+        promo_code,
+        discount_amount,
       }])
       .select()
       .single();

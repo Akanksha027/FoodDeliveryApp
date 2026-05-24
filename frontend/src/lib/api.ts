@@ -140,6 +140,8 @@ export const createOrder = (order: {
   payment_status?: string;
   razorpay_order_id?: string;
   razorpay_payment_id?: string;
+  promo_code?: string;
+  discount_amount?: number;
 }) => request('/api/orders/create', { method: 'POST', body: JSON.stringify(order) });
 
 /** PUT /api/orders/cancel/:id — cancel order */
@@ -151,6 +153,37 @@ export const updateOrderStatus = (orderId: string, status: string) =>
   request(`/api/orders/${orderId}`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
+  });
+
+// ─── PROMO CODES ──────────────────────────────────────────────────
+/** GET /api/promocodes — fetch all promo codes */
+export const getPromoCodes = () => request('/api/promocodes');
+
+/** POST /api/promocodes — create promo code */
+export const createPromoCode = (promo: {
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  min_order_value?: number;
+  active?: boolean;
+}) => request('/api/promocodes', { method: 'POST', body: JSON.stringify(promo) });
+
+/** POST /api/promocodes/validate — validate a promo code */
+export const validatePromoCode = (code: string, cartValue: number) =>
+  request('/api/promocodes/validate', {
+    method: 'POST',
+    body: JSON.stringify({ code, cartValue }),
+  });
+
+/** DELETE /api/promocodes/:id — delete a promo code */
+export const deletePromoCode = (id: string) =>
+  request(`/api/promocodes/${id}`, { method: 'DELETE' });
+
+/** PATCH /api/promocodes/:id — toggle promo code active status */
+export const togglePromoCode = (id: string, active: boolean) =>
+  request(`/api/promocodes/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ active }),
   });
 
 // ─── PAYMENT ─────────────────────────────────────────────────────

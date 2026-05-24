@@ -40,6 +40,8 @@ import {
   getFavorites,
   addFavorite,
   removeFavorite,
+  validatePromoCode,
+  getPromoCodes,
 } from '../lib/api';
 
 // ─── Theme Design Tokens ──────────────────────────────────
@@ -218,6 +220,23 @@ export const CustomerDashboard = ({ navigation }: any) => {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
+  
+  // Coupons modal states
+  const [couponsModalVisible, setCouponsModalVisible] = useState(false);
+  const [allCoupons, setAllCoupons] = useState<any[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+
+  const fetchCouponsForUser = async () => {
+    setLoadingCoupons(true);
+    try {
+      const res = await getPromoCodes();
+      // Filter for active coupons only
+      setAllCoupons(Array.isArray(res) ? res.filter((c: any) => c.active) : []);
+    } catch (e) {
+      console.error('Failed to load coupons', e);
+    }
+    setLoadingCoupons(false);
+  };
 
   // Address form modal state
   const [addressModalVisible, setAddressModalVisible] = useState(false);
@@ -680,6 +699,8 @@ export const CustomerDashboard = ({ navigation }: any) => {
           payment_status: 'paid',
           razorpay_order_id: paymentOrder.id,
           razorpay_payment_id: verification.payment_id,
+          promo_code: discount > 0 ? promoCode.trim().toUpperCase() : undefined,
+          discount_amount: discount > 0 ? discount : undefined,
         });
 
         setCart([]);
@@ -738,12 +759,25 @@ export const CustomerDashboard = ({ navigation }: any) => {
     return item ? item.quantity : 0;
   };
 
-  const handleApplyPromo = () => {
-    if (promoCode.trim().toUpperCase() === 'DISCOUNT10') {
-      setDiscount(10);
-      Alert.alert('Promo Applied', '₹10 discount applied to your order!');
-    } else {
-      Alert.alert('Invalid Code', 'The promo code entered is invalid.');
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) {
+      Alert.alert('Promo Code Required', 'Please enter a promo code.');
+      return;
+    }
+    try {
+      const res = await validatePromoCode(promoCode, subtotal);
+      if (res.valid) {
+        setDiscount(res.discountAmount);
+        Alert.alert(
+          '🎉 Promo Code Applied!',
+          `You saved ₹${res.discountAmount.toFixed(2)} with code ${res.code}!`
+        );
+      } else {
+        setDiscount(0);
+        Alert.alert('Promo Code Error', res.reason || 'Invalid promo code');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not validate promo code');
       setDiscount(0);
     }
   };
@@ -751,6 +785,9 @@ export const CustomerDashboard = ({ navigation }: any) => {
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartTotal = Math.max(0, subtotal - discount);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const recommendedItems = menuItems
+    .filter(item => !cart.some(cartItem => cartItem.id === item.id))
+    .slice(0, 5);
 
   // Dynamic filter for food items based on active category pill and search query
   const filteredFoods = menuItems.filter(f => {
@@ -1327,13 +1364,73 @@ export const CustomerDashboard = ({ navigation }: any) => {
                     ))}
                   </View>
 
+                  {/* Recommended Add-ons Section */}
+                  {recommendedItems.length > 0 && (
+                    <View style={{ marginVertical: 16 }}>
+                      <Text style={[s.checkoutSectionTitle, { paddingHorizontal: 16, marginBottom: 10 }]}>
+                        Complete Your Meal 😋
+                      </Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                        {recommendedItems.map(item => (
+                          <View
+                            key={item.id}
+                            style={{
+                              width: 140,
+                              backgroundColor: '#fff',
+                              borderRadius: 16,
+                              padding: 10,
+                              borderWidth: 1,
+                              borderColor: '#F0F0F5',
+                              elevation: 1,
+                            }}
+                          >
+                            <Image
+                              source={getDishImage(item.name)}
+                              style={{ width: '100%', height: 70, resizeMode: 'contain', marginBottom: 6 }}
+                            />
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: T.text }} numberOfLines={1}>
+                              {item.name}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>
+                              {item.category || 'Add-on'}
+                            </Text>
+                            
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                              <Text style={{ fontSize: 13, fontWeight: '850', color: T.text }}>
+                                ₹{item.price}
+                              </Text>
+                              <TouchableOpacity
+                                onPress={() => handleAddToCart(item)}
+                                style={{
+                                  backgroundColor: '#CCFF00',
+                                  borderRadius: 8,
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 4,
+                                }}
+                              >
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#111' }}>+ ADD</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+
                   {/* Promo Code Section */}
                   <View style={s.promoSection}>
-                    <Text style={s.checkoutSectionTitle}>Promo Code</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={s.checkoutSectionTitle}>Promo Code</Text>
+                      <TouchableOpacity onPress={() => { fetchCouponsForUser(); setCouponsModalVisible(true); }}>
+                        <Text style={{ fontSize: 12, color: T.accent, fontWeight: '700', textDecorationLine: 'underline' }}>
+                          View All Coupons
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                     <View style={s.promoInputRow}>
                       <TextInput
                         style={s.promoInput}
-                        placeholder="Enter promo code (e.g. DISCOUNT10)"
+                        placeholder="Enter promo code (e.g. SAVE15)"
                         value={promoCode}
                         onChangeText={setPromoCode}
                         placeholderTextColor="#999"
@@ -1599,6 +1696,97 @@ export const CustomerDashboard = ({ navigation }: any) => {
                 <Text style={s.saveAddrBtnText}>💾 Save Address</Text>
               </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* View All Coupons Modal */}
+      <Modal
+        visible={couponsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCouponsModalVisible(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={[s.modalContainer, { maxHeight: '75%' }]}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>🏷️ Available Coupons</Text>
+              <TouchableOpacity onPress={() => setCouponsModalVisible(false)}>
+                <Text style={s.closeModalText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loadingCoupons ? (
+              <ActivityIndicator color={T.accent} style={{ marginVertical: 30 }} />
+            ) : (
+              <ScrollView contentContainerStyle={{ padding: 16 }}>
+                {allCoupons.length === 0 ? (
+                  <Text style={{ textAlign: 'center', color: T.sub, marginVertical: 20 }}>No coupons available right now</Text>
+                ) : (
+                  allCoupons.map((coupon) => {
+                    const isEligible = subtotal >= parseFloat(coupon.min_order_value);
+                    return (
+                      <TouchableOpacity
+                        key={coupon.id}
+                        disabled={!isEligible}
+                        onPress={() => {
+                          setPromoCode(coupon.code);
+                          setDiscount(coupon.discount_type === 'percentage' 
+                            ? parseFloat(((subtotal * parseFloat(coupon.discount_value)) / 100).toFixed(2))
+                            : Math.min(parseFloat(coupon.discount_value), subtotal)
+                          );
+                          setCouponsModalVisible(false);
+                          Alert.alert('🎉 Promo Applied!', `You saved ₹${
+                            (coupon.discount_type === 'percentage' 
+                              ? (subtotal * parseFloat(coupon.discount_value)) / 100
+                              : Math.min(parseFloat(coupon.discount_value), subtotal)
+                            ).toFixed(2)
+                          } with code ${coupon.code}!`);
+                        }}
+                        style={{
+                          backgroundColor: isEligible ? '#E5E7EB' : '#F3F4F6', // Highlight grey bg if eligible, faint grey if not
+                          borderRadius: 12,
+                          padding: 16,
+                          marginBottom: 12,
+                          borderWidth: 1.5,
+                          borderColor: isEligible ? '#9CA3AF' : '#E5E7EB',
+                          opacity: isEligible ? 1 : 0.6,
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 16, fontWeight: '800', color: T.dark, letterSpacing: 0.5 }}>
+                            🎫 {coupon.code}
+                          </Text>
+                          {isEligible ? (
+                            <View style={{ backgroundColor: '#00C853', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 10, color: '#fff', fontWeight: 'bold' }}>APPLY NOW</Text>
+                            </View>
+                          ) : (
+                            <View style={{ backgroundColor: '#D1D5DB', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 10, color: '#4B5563', fontWeight: 'bold' }}>LOCKED</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: T.text, marginTop: 6 }}>
+                          {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% Off` : `Flat ₹${coupon.discount_value} Off`}
+                        </Text>
+
+                        <Text style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>
+                          🛒 Valid on orders above ₹{parseFloat(coupon.min_order_value).toFixed(2)}
+                        </Text>
+
+                        {!isEligible && (
+                          <Text style={{ fontSize: 11, color: T.accent, fontWeight: '600', marginTop: 8 }}>
+                            💡 Add ₹{(parseFloat(coupon.min_order_value) - subtotal).toFixed(2)} more to unlock this coupon!
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>

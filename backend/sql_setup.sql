@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_status TEXT DEFAULT 'pending', -- pending, paid, failed
   razorpay_order_id TEXT,
   razorpay_payment_id TEXT,
+  promo_code TEXT,
+  discount_amount NUMERIC(10, 2) DEFAULT 0.00,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -98,3 +100,24 @@ ALTER TABLE kitchen_location DISABLE ROW LEVEL SECURITY;
 INSERT INTO kitchen_location (address, latitude, longitude)
 VALUES ('Ghaziabad Center, Uttar Pradesh, India', 28.6692, 77.4538)
 ON CONFLICT DO NOTHING;
+
+-- 8. Create Promo Codes Table
+CREATE TABLE IF NOT EXISTS promo_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,
+  discount_type TEXT NOT NULL CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_value NUMERIC(10, 2) NOT NULL,
+  min_order_value NUMERIC(10, 2) DEFAULT 0.00,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE promo_codes DISABLE ROW LEVEL SECURITY;
+
+-- Insert default seed promo codes
+INSERT INTO promo_codes (code, discount_type, discount_value, min_order_value)
+VALUES 
+  ('SAVE15', 'percentage', 15.00, 400.00),
+  ('FLAT100', 'fixed', 100.00, 500.00)
+ON CONFLICT (code) DO NOTHING;
+

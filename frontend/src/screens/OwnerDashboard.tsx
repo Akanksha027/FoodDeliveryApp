@@ -28,7 +28,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'promos' | 'settings'>('orders');
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [newItem, setNewItem] = useState({ name: '', category: '', description: '', price: '' });
   const [addingItem, setAddingItem] = useState(false);
@@ -37,6 +37,17 @@ export const OwnerDashboard = ({ navigation }: any) => {
   const [kitchenAddress, setKitchenAddress] = useState('');
   const [kitchenLocation, setKitchenLocation] = useState<any>(null);
   const [updatingLocation, setUpdatingLocation] = useState(false);
+
+  // Promo Code Management States
+  const [promoCodes, setPromoCodes] = useState<any[]>([]);
+  const [newPromo, setNewPromo] = useState({
+    code: '',
+    discount_type: 'percentage', // percentage | fixed
+    discount_value: '',
+    min_order_value: '',
+    active: true
+  });
+  const [addingPromo, setAddingPromo] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -75,15 +86,27 @@ export const OwnerDashboard = ({ navigation }: any) => {
     }
   };
 
+  const fetchPromoCodes = async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/promocodes`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      const data = await res.json();
+      setPromoCodes(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Failed to fetch promo codes', e);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
-    await Promise.all([fetchOrders(), fetchMenu(), fetchKitchenLocation()]);
+    await Promise.all([fetchOrders(), fetchMenu(), fetchKitchenLocation(), fetchPromoCodes()]);
     setLoading(false);
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchOrders(), fetchMenu(), fetchKitchenLocation()]);
+    await Promise.all([fetchOrders(), fetchMenu(), fetchKitchenLocation(), fetchPromoCodes()]);
     setRefreshing(false);
   };
 
@@ -232,6 +255,82 @@ export const OwnerDashboard = ({ navigation }: any) => {
     ]);
   };
 
+  const addPromoCode = async () => {
+    if (!newPromo.code || !newPromo.discount_value) {
+      Alert.alert('Error', 'Promo Code and Discount Value are required');
+      return;
+    }
+    setAddingPromo(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/promocodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        body: JSON.stringify({
+          code: newPromo.code,
+          discount_type: newPromo.discount_type,
+          discount_value: parseFloat(newPromo.discount_value),
+          min_order_value: newPromo.min_order_value ? parseFloat(newPromo.min_order_value) : 0,
+          active: newPromo.active,
+        }),
+      });
+      if (res.ok) {
+        setNewPromo({
+          code: '',
+          discount_type: 'percentage',
+          discount_value: '',
+          min_order_value: '',
+          active: true
+        });
+        await fetchPromoCodes();
+        Alert.alert('Success', 'Promo code created successfully!');
+      } else {
+        const data = await res.json();
+        Alert.alert('Error', data.error || 'Failed to create promo code');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to add promo code');
+    }
+    setAddingPromo(false);
+  };
+
+  const togglePromoActive = async (id: string, active: boolean) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/promocodes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        body: JSON.stringify({ active }),
+      });
+      if (res.ok) {
+        await fetchPromoCodes();
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update promo code status');
+    }
+  };
+
+  const deletePromo = async (id: string) => {
+    Alert.alert('Delete Promo Code', 'Are you sure you want to delete this promo code permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          try {
+            const res = await fetch(`${BACKEND}/api/promocodes/${id}`, {
+              method: 'DELETE',
+              headers: { 'ngrok-skip-browser-warning': 'true' }
+            });
+            if (res.ok) {
+              await fetchPromoCodes();
+              Alert.alert('Deleted', 'Promo code deleted permanently.');
+            }
+          } catch (e) {
+            Alert.alert('Error', 'Failed to delete promo code');
+          }
+        }
+      }
+    ]);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     await clearSession();
@@ -263,7 +362,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
           style={[styles.tab, activeTab === 'orders' && styles.activeTab]}
           onPress={() => setActiveTab('orders')}
         >
-          <Text style={[styles.tabText, activeTab === 'orders' && styles.activeTabText]}>
+          <Text style={[styles.tabText, activeTab === 'orders' && styles.activeTabText, { fontSize: 13 }]}>
             Orders ({orders.length})
           </Text>
         </TouchableOpacity>
@@ -271,15 +370,23 @@ export const OwnerDashboard = ({ navigation }: any) => {
           style={[styles.tab, activeTab === 'menu' && styles.activeTab]}
           onPress={() => setActiveTab('menu')}
         >
-          <Text style={[styles.tabText, activeTab === 'menu' && styles.activeTabText]}>
+          <Text style={[styles.tabText, activeTab === 'menu' && styles.activeTabText, { fontSize: 13 }]}>
             Menu ({menuItems.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'promos' && styles.activeTab]}
+          onPress={() => setActiveTab('promos')}
+        >
+          <Text style={[styles.tabText, activeTab === 'promos' && styles.activeTabText, { fontSize: 13 }]}>
+            Promos ({promoCodes.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'settings' && styles.activeTab]}
           onPress={() => setActiveTab('settings')}
         >
-          <Text style={[styles.tabText, activeTab === 'settings' && styles.activeTabText]}>
+          <Text style={[styles.tabText, activeTab === 'settings' && styles.activeTabText, { fontSize: 13 }]}>
             Settings ⚙️
           </Text>
         </TouchableOpacity>
@@ -387,6 +494,145 @@ export const OwnerDashboard = ({ navigation }: any) => {
                   >
                     <Text style={styles.deleteBtnText}>🗑</Text>
                   </TouchableOpacity>
+                </View>
+              ))
+            )}
+          </>
+        ) : activeTab === 'promos' ? (
+          <>
+            {/* Add Promo Code Form */}
+            <View style={styles.addItemCard}>
+              <Text style={styles.sectionTitle}>🎫 Add New Promo Code</Text>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="PROMO CODE (e.g. SAVE15) *"
+                value={newPromo.code}
+                onChangeText={v => setNewPromo(p => ({ ...p, code: v.toUpperCase().trim() }))}
+                autoCapitalize="characters"
+              />
+
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    borderRadius: 8,
+                    borderWidth: 1.5,
+                    borderColor: newPromo.discount_type === 'percentage' ? '#4F46E5' : '#E5E7EB',
+                    backgroundColor: newPromo.discount_type === 'percentage' ? '#EEF2F6' : '#fff',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => setNewPromo(p => ({ ...p, discount_type: 'percentage' }))}
+                >
+                  <Text style={{ fontWeight: 'bold', color: newPromo.discount_type === 'percentage' ? '#4F46E5' : '#4B5563' }}>
+                    Percentage (%)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    padding: 12,
+                    borderRadius: 8,
+                    borderWidth: 1.5,
+                    borderColor: newPromo.discount_type === 'fixed' ? '#4F46E5' : '#E5E7EB',
+                    backgroundColor: newPromo.discount_type === 'fixed' ? '#EEF2F6' : '#fff',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => setNewPromo(p => ({ ...p, discount_type: 'fixed' }))}
+                >
+                  <Text style={{ fontWeight: 'bold', color: newPromo.discount_type === 'fixed' ? '#4F46E5' : '#4B5563' }}>
+                    Fixed ₹ Off
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TextInput
+                style={styles.input}
+                placeholder={newPromo.discount_type === 'percentage' ? "Discount Percentage (e.g. 15) *" : "Discount Value in ₹ (e.g. 100) *"}
+                value={newPromo.discount_value}
+                onChangeText={v => setNewPromo(p => ({ ...p, discount_value: v }))}
+                keyboardType="numeric"
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Minimum Order Value in ₹ (e.g. 400)"
+                value={newPromo.min_order_value}
+                onChangeText={v => setNewPromo(p => ({ ...p, min_order_value: v }))}
+                keyboardType="numeric"
+              />
+
+              <TouchableOpacity
+                style={[styles.addBtn, addingPromo && styles.disabledBtn]}
+                onPress={addPromoCode}
+                disabled={addingPromo}
+              >
+                <Text style={styles.addBtnText}>{addingPromo ? 'Creating...' : 'Create Promo Code'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Promo Codes List */}
+            {promoCodes.length === 0 ? (
+              <Text style={styles.emptyText}>No promo codes yet</Text>
+            ) : (
+              promoCodes.map(promo => (
+                <View key={promo.id} style={styles.menuCard}>
+                  <View style={styles.menuCardContent}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={[styles.menuItemName, { fontSize: 16, color: '#111827', letterSpacing: 0.5 }]}>
+                        🎫 {promo.code}
+                      </Text>
+                      <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 12,
+                        backgroundColor: promo.active ? '#DEF7EC' : '#FDE8E8',
+                      }}>
+                        <Text style={{
+                          fontSize: 10,
+                          fontWeight: 'bold',
+                          color: promo.active ? '#03543F' : '#9B1C1C'
+                        }}>
+                          {promo.active ? 'ACTIVE' : 'INACTIVE'}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <Text style={{ fontSize: 13, color: '#4B5563', marginTop: 4, fontWeight: '600' }}>
+                      🎁 {promo.discount_type === 'percentage' ? `${promo.discount_value}% Off` : `₹${promo.discount_value} Off`}
+                    </Text>
+
+                    <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                      🛒 Min. Order: ₹{promo.min_order_value || 0}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <TouchableOpacity
+                      onPress={() => togglePromoActive(promo.id, !promo.active)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                        backgroundColor: '#F3F4F6',
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB'
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151' }}>
+                        {promo.active ? 'Deactivate' : 'Activate'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => deletePromo(promo.id)}
+                    >
+                      <Text style={styles.deleteBtnText}>🗑</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))
             )}
