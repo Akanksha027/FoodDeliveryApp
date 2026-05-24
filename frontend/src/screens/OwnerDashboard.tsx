@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, RefreshControl
+  TextInput, Alert, ActivityIndicator, RefreshControl, Platform
 } from 'react-native';
 import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
