@@ -89,6 +89,44 @@ export const OwnerDashboard = ({ navigation }: any) => {
 
   useEffect(() => { loadData(); }, []);
 
+  // Set up message listener for the embedded Leaflet Map Picker iframe
+  useEffect(() => {
+    const handleMapMessage = async (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.type === 'LOCATION_SELECTED') {
+          console.log('[Map] Received coordinates from map picker:', data.address, data.latitude, data.longitude);
+          
+          setUpdatingLocation(true);
+          const res = await fetch(`${BACKEND}/api/kitchen`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+            body: JSON.stringify({
+              address: data.address,
+              latitude: data.latitude,
+              longitude: data.longitude,
+            }),
+          });
+
+          if (res.ok) {
+            await fetchKitchenLocation();
+            Alert.alert('Success', `Kitchen location updated to: ${data.address}`);
+          } else {
+            Alert.alert('Error', 'Failed to save location in database');
+          }
+          setUpdatingLocation(false);
+        }
+      } catch (e) {
+        // Ignore non-JSON messages
+      }
+    };
+
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('message', handleMapMessage);
+      return () => window.removeEventListener('message', handleMapMessage);
+    }
+  }, []);
+
   const updateStoreLocation = async () => {
     if (!kitchenAddress.trim()) {
       Alert.alert('Error', 'Please enter a kitchen address.');
@@ -367,8 +405,32 @@ export const OwnerDashboard = ({ navigation }: any) => {
               <ActivityIndicator color="#4F46E5" style={{ marginVertical: 10 }} />
             )}
 
+            <Text style={{ fontSize: 14, color: '#111827', marginBottom: 12, fontWeight: '700' }}>
+              🗺️ Drag Pin or Search on Map to Set Location:
+            </Text>
+
+            {/* Render the interactive Leaflet Map Picker on web natively */}
+            {Platform.OS === 'web' ? (
+              <iframe
+                src="http://localhost:3000/map-picker.html"
+                style={{
+                  width: '100%',
+                  height: 520,
+                  borderRadius: 12,
+                  border: '1px solid #E5E7EB',
+                  marginBottom: 16,
+                }}
+              />
+            ) : (
+              <View style={{ padding: 20, backgroundColor: '#F9FAFB', borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
+                <Text style={{ color: '#64748B', textAlign: 'center', fontSize: 13 }}>
+                  Interactive Map picker is available on Web.
+                </Text>
+              </View>
+            )}
+
             <Text style={{ fontSize: 13, color: '#475569', marginBottom: 8, fontWeight: '600' }}>
-              Update Kitchen Address:
+              Fallback - Type Kitchen Address:
             </Text>
             <TextInput
               style={styles.input}
@@ -383,7 +445,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
               disabled={updatingLocation}
             >
               <Text style={styles.addBtnText}>
-                {updatingLocation ? 'Geocoding & Saving...' : 'Update Store Location'}
+                {updatingLocation ? 'Saving Location...' : 'Update Store Location'}
               </Text>
             </TouchableOpacity>
           </View>
