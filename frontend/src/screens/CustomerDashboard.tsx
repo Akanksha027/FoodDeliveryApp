@@ -192,7 +192,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState<'home' | 'fav' | 'orders' | 'cart' | 'profile'>('home');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('pizza');
+  const [activeCategory, setActiveCategory] = useState('');
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [placingOrder, setPlacingOrder] = useState(false);
   const [promoCode, setPromoCode] = useState('');
@@ -559,18 +559,39 @@ export const CustomerDashboard = ({ navigation }: any) => {
   const cartTotal = Math.max(0, subtotal - discount);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Dynamic filter for food items based on active category selection
+  // Dynamic filter for food items based on active category pill and search query
   const filteredFoods = menuItems.filter(f => {
-    if (!activeCat) return true;
-    const cat = f.category?.toLowerCase() || '';
-    const name = f.name?.toLowerCase() || '';
+    // 1. Filter by category pill if selected
+    if (activeCategory) {
+      const cat = f.category?.toLowerCase() || '';
+      const name = f.name?.toLowerCase() || '';
+      const desc = f.description?.toLowerCase() || '';
+      const targetCat = activeCategory.toLowerCase();
 
-    if (activeCat === 'burger') return cat.includes('burger') || name.includes('burger');
-    if (activeCat === 'pizza') return cat.includes('pizza') || name.includes('pizza');
-    if (activeCat === 'fries') return cat.includes('fries') || cat.includes('sides') || name.includes('fries');
-    if (activeCat === 'drink') return cat.includes('drink') || cat.includes('beverage') || cat.includes('coffee') || name.includes('coffee') || name.includes('lemonade') || name.includes('smoothie');
+      if (targetCat === 'burger') {
+        if (!cat.includes('burger') && !name.includes('burger')) return false;
+      } else if (targetCat === 'pizza') {
+        if (!cat.includes('pizza') && !name.includes('pizza')) return false;
+      } else if (targetCat === 'fries') {
+        if (!cat.includes('fries') && !cat.includes('sides') && !name.includes('fries')) return false;
+      } else if (targetCat === 'drink') {
+        if (!cat.includes('drink') && !cat.includes('beverage') && !cat.includes('coffee') && !name.includes('coffee') && !name.includes('lemonade') && !name.includes('smoothie')) return false;
+      } else {
+        if (!cat.includes(targetCat) && !name.includes(targetCat) && !desc.includes(targetCat)) return false;
+      }
+    }
 
-    return cat.includes(activeCat.toLowerCase()) || name.includes(activeCat.toLowerCase());
+    // 2. Filter by search query if typed
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      const name = f.name?.toLowerCase() || '';
+      const cat = f.category?.toLowerCase() || '';
+      const desc = f.description?.toLowerCase() || '';
+
+      if (!name.includes(query) && !cat.includes(query) && !desc.includes(query)) return false;
+    }
+
+    return true;
   });
 
   const selectedAddressObj = addresses.find(a => a.id === selectedAddressId);
@@ -631,51 +652,55 @@ export const CustomerDashboard = ({ navigation }: any) => {
                     key={cat.id}
                     item={cat}
                     selected={activeCategory === cat.id}
-                    onPress={() => setActiveCategory(cat.id)}
+                    onPress={() => setActiveCategory(prev => prev === cat.id ? '' : cat.id)}
                   />
                 ))}
               </ScrollView>
 
-              {/* ── Popular Food ── */}
-              <View style={s.foodHomeSectionHeader}>
-                <Text style={s.foodHomeSectionTitle}>Popular Food</Text>
-                <TouchableOpacity activeOpacity={0.7}>
-                  <Text style={s.seeAllText}>See All</Text>
-                </TouchableOpacity>
-              </View>
+              {/* ── Popular Food (Only visible when not searching or filtering) ── */}
+              {!searchQuery && !activeCategory && (
+                <>
+                  <View style={s.foodHomeSectionHeader}>
+                    <Text style={s.foodHomeSectionTitle}>Popular Food</Text>
+                    <TouchableOpacity activeOpacity={0.7}>
+                      <Text style={s.seeAllText}>See All</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              {/* Horizontal cards */}
-              <FlatList
-                data={menuItems.slice(0, 4)}
-                keyExtractor={i => i.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={s.cardList}
-                renderItem={({ item }) => (
-                  <FoodCard 
-                    item={item} 
-                    cartQty={getCartQty(item.id)}
-                    cartItem={cart.find((c: any) => c.id === item.id)}
-                    onAddToCart={handleAddToCart}
-                    onUpdateQty={handleUpdateQty}
-                    isLiked={liked[item.id]}
-                    onToggleLike={toggleLike}
+                  {/* Horizontal cards */}
+                  <FlatList
+                    data={menuItems.slice(0, 4)}
+                    keyExtractor={i => i.id}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={s.cardList}
+                    renderItem={({ item }) => (
+                      <FoodCard 
+                        item={item} 
+                        cartQty={getCartQty(item.id)}
+                        cartItem={cart.find((c: any) => c.id === item.id)}
+                        onAddToCart={handleAddToCart}
+                        onUpdateQty={handleUpdateQty}
+                        isLiked={liked[item.id]}
+                        onToggleLike={toggleLike}
+                      />
+                    )}
+                    snapToInterval={ACTUAL_LAYOUT_W * 0.62 + 16}
+                    decelerationRate="fast"
                   />
-                )}
-                snapToInterval={ACTUAL_LAYOUT_W * 0.62 + 16}
-                decelerationRate="fast"
-              />
-
-
+                </>
+              )}
 
               {/* Menu Items Grid */}
               <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>Menu</Text>
+                <Text style={s.sectionTitle}>
+                  {searchQuery || activeCategory ? 'Search Results' : 'Menu'}
+                </Text>
                 <Text style={s.seeAll}>Our Dishes</Text>
               </View>
 
               <View style={s.foodGrid}>
-                {menuItems.map(item => (
+                {filteredFoods.map(item => (
                   <TouchableOpacity
                     key={item.id}
                     style={[s.fcard, { width: CARD_W }]}
@@ -727,47 +752,55 @@ export const CustomerDashboard = ({ navigation }: any) => {
                   </TouchableOpacity>
                 ))}
 
-                {menuItems.length === 0 && (
+                {filteredFoods.length === 0 && (
                   <View style={s.empty}>
-                    <Text style={s.emptyTxt}>No dishes available in the kitchen 🍽</Text>
+                    <Text style={s.emptyTxt}>
+                      {searchQuery || activeCategory
+                        ? 'No dishes match your search 🍽'
+                        : 'No dishes available in the kitchen 🍽'}
+                    </Text>
                   </View>
                 )}
               </View>
 
-              {/* Near You restaurants list */}
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>Near you</Text>
-                <Text style={s.seeAll}>Online Kitchens</Text>
-              </View>
+              {/* Near You restaurants list (Only visible when not searching or filtering) */}
+              {!searchQuery && !activeCategory && (
+                <>
+                  <View style={s.sectionHeader}>
+                    <Text style={s.sectionTitle}>Near you</Text>
+                    <Text style={s.seeAll}>Online Kitchens</Text>
+                  </View>
 
-              <FlatList
-                data={RESTAURANTS}
-                keyExtractor={i => i.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={s.restList}
-                renderItem={({ item }) => (
-                  <View style={s.rcard}>
-                    <View style={s.rcardThumb}>
-                      <Text style={s.rcardEmoji}>{item.emoji}</Text>
-                    </View>
-                    <View style={s.rcardInfo}>
-                      <Text style={s.rcardName} numberOfLines={1}>{item.name}</Text>
-                      <Text style={s.rcardType}>{item.type}</Text>
-                      <View style={s.rcardMeta}>
-                        <Text style={s.rcardStar}>★ {item.rating}</Text>
-                        <View style={s.rcardDot} />
-                        <Text style={s.rcardTime}>{item.time}</Text>
-                        {item.freeDelivery && (
-                          <View style={s.freeBadge}>
-                            <Text style={s.freeTxt}>Free</Text>
+                  <FlatList
+                    data={RESTAURANTS}
+                    keyExtractor={i => i.id}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={s.restList}
+                    renderItem={({ item }) => (
+                      <View style={s.rcard}>
+                        <View style={s.rcardThumb}>
+                          <Text style={s.rcardEmoji}>{item.emoji}</Text>
+                        </View>
+                        <View style={s.rcardInfo}>
+                          <Text style={s.rcardName} numberOfLines={1}>{item.name}</Text>
+                          <Text style={s.rcardType}>{item.type}</Text>
+                          <View style={s.rcardMeta}>
+                            <Text style={s.rcardStar}>★ {item.rating}</Text>
+                            <View style={s.rcardDot} />
+                            <Text style={s.rcardTime}>{item.time}</Text>
+                            {item.freeDelivery && (
+                              <View style={s.freeBadge}>
+                                <Text style={s.freeTxt}>Free</Text>
+                              </View>
+                            )}
                           </View>
-                        )}
+                        </View>
                       </View>
-                    </View>
-                  </View>
-                )}
-              />
+                    )}
+                  />
+                </>
+              )}
             </>
           )}
 

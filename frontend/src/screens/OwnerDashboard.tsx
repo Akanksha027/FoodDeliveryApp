@@ -29,7 +29,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'menu'>('orders');
   const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [newItem, setNewItem] = useState({ name: '', description: '', price: '' });
+  const [newItem, setNewItem] = useState({ name: '', category: '', description: '', price: '' });
   const [addingItem, setAddingItem] = useState(false);
 
   const fetchOrders = async () => {
@@ -84,8 +84,8 @@ export const OwnerDashboard = ({ navigation }: any) => {
   };
 
   const addMenuItem = async () => {
-    if (!newItem.name || !newItem.price) {
-      Alert.alert('Error', 'Name and price are required');
+    if (!newItem.name || !newItem.price || !newItem.category) {
+      Alert.alert('Error', 'Name, category, and price are required');
       return;
     }
     setAddingItem(true);
@@ -95,12 +95,13 @@ export const OwnerDashboard = ({ navigation }: any) => {
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({
           name: newItem.name,
+          category: newItem.category,
           description: newItem.description,
           price: parseFloat(newItem.price),
         }),
       });
       if (res.ok) {
-        setNewItem({ name: '', description: '', price: '' });
+        setNewItem({ name: '', category: '', description: '', price: '' });
         await fetchMenu();
         Alert.alert('Success', 'Menu item added!');
       }
@@ -226,6 +227,12 @@ export const OwnerDashboard = ({ navigation }: any) => {
               />
               <TextInput
                 style={styles.input}
+                placeholder="Category (e.g. Burger, Pizza, Fries, Drink) *"
+                value={newItem.category}
+                onChangeText={v => setNewItem(p => ({ ...p, category: v }))}
+              />
+              <TextInput
+                style={styles.input}
                 placeholder="Description"
                 value={newItem.description}
                 onChangeText={v => setNewItem(p => ({ ...p, description: v }))}
@@ -253,7 +260,9 @@ export const OwnerDashboard = ({ navigation }: any) => {
               menuItems.map(item => (
                 <View key={item.id} style={styles.menuCard}>
                   <View style={styles.menuCardContent}>
-                    <Text style={styles.menuItemName}>{item.name}</Text>
+                    <Text style={styles.menuItemName}>
+                      {item.name} <Text style={{ fontSize: 13, fontWeight: 'normal', color: '#6B7280' }}>({item.category || 'Uncategorized'})</Text>
+                    </Text>
                     {item.description ? (
                       <Text style={styles.menuItemDesc}>{item.description}</Text>
                     ) : null}
