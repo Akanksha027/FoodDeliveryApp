@@ -1,6 +1,6 @@
 // src/screens/LoginScreen.tsx
 import React, { useEffect, useRef } from 'react';
-import { View, Button, StyleSheet, Text, Alert } from 'react-native';
+import { View, Button, StyleSheet, Text, Alert, Linking, Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { storeSession } from '../utils/session';
 
@@ -37,13 +37,18 @@ export const LoginScreen = ({ navigation }: any) => {
 
   const handleGoogleLogin = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const redirectUrl = typeof window !== 'undefined' && window.location ? window.location.origin : undefined;
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: redirectUrl,
         },
       });
       if (error) throw error;
+
+      if (Platform.OS !== 'web' && data?.url) {
+        await Linking.openURL(data.url);
+      }
     } catch (e: any) {
       Alert.alert('Login error', e.message);
     }
