@@ -238,6 +238,10 @@ export const CustomerDashboard = ({ navigation }: any) => {
     setLoadingCoupons(false);
   };
 
+  // Checkout Order Placement & Bill Confirmation States
+  const [placedOrder, setPlacedOrder] = useState<any>(null);
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+
   // Address form modal state
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [receiverName, setReceiverName] = useState('');
@@ -676,40 +680,33 @@ export const CustomerDashboard = ({ navigation }: any) => {
     try {
       const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const totalAmount = Math.max(0, subtotal - discount);
-      const paymentOrder = await createPaymentOrder(totalAmount);
 
-      const verification = await verifyPayment({
-        razorpay_order_id: paymentOrder.id,
-        razorpay_payment_id: `pay_${Math.random().toString(36).substring(2, 12).toUpperCase()}`,
-        razorpay_signature: `sig_${Math.random().toString(36).substring(2, 12).toUpperCase()}`,
+      // Create the order directly, bypassing payment gateway integration!
+      const newOrder = await createOrder({
+        customer_id: currentUser.id,
+        customer_email: currentUser.email,
+        items: cart.map(item => ({
+          menu_item_id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        total: totalAmount,
+        address_id: selectedAddressId,
+        payment_status: 'pending', // Pending payment at door / Cash on Delivery
+        promo_code: discount > 0 ? promoCode.trim().toUpperCase() : undefined,
+        discount_amount: discount > 0 ? discount : undefined,
       });
 
-      if (verification.success) {
-        await createOrder({
-          customer_id: currentUser.id,
-          customer_email: currentUser.email,
-          items: cart.map(item => ({
-            menu_item_id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-          })),
-          total: totalAmount,
-          address_id: selectedAddressId,
-          payment_status: 'paid',
-          razorpay_order_id: paymentOrder.id,
-          razorpay_payment_id: verification.payment_id,
-          promo_code: discount > 0 ? promoCode.trim().toUpperCase() : undefined,
-          discount_amount: discount > 0 ? discount : undefined,
-        });
-
-        setCart([]);
-        await refreshData();
-        setActiveNav('home');
-        Alert.alert('🎉 Checkout Completed!', 'Your order has been verified and placed.');
-      } else {
-        Alert.alert('Payment Denied', 'Payment verification failed.');
-      }
+      // Clear checkout inputs and store placed order details for the Confirmation Bill
+      setPromoCode('');
+      setDiscount(0);
+      setPlacedOrder(newOrder);
+      setCart([]); // Clear the user's cart
+      setConfirmationModalVisible(true); // Open the Confirmation Bill modal overlay
+      
+      // Quietly reload data to keep listings in sync
+      await refreshData();
     } catch (e: any) {
       Alert.alert('Checkout Error', e.message || 'An unexpected error occurred.');
     }
@@ -1787,6 +1784,177 @@ export const CustomerDashboard = ({ navigation }: any) => {
                 )}
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bill Confirmation success Modal */}
+      <Modal
+        visible={confirmationModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setConfirmationModalVisible(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={[s.modalContainer, { maxHeight: '80%' }]}>
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              {/* Success Badge */}
+              <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                <View style={{
+                  width: 70,
+                  height: 70,
+                  borderRadius: 35,
+                  backgroundColor: '#E8F5E9',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 12
+                }}>
+                  <Text style={{ fontSize: 36 }}>🎉</Text>
+                </View>
+                <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20', textAlign: 'center' }}>
+                  Order Placed Successfully!
+                </Text>
+                <Text style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
+                  Estimated preparation time: 25-35 mins
+                </Text>
+              </View>
+
+              {placedOrder ? (
+                <>
+                  {/* Order ID & Status */}
+                  <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: T.sub }}>Order Code:</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark }}>
+                        #{placedOrder.id?.slice(-6).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: T.sub }}>Payment Status:</Text>
+                      <View style={{ backgroundColor: '#FFF3E0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#E65100' }}>CASH ON DELIVERY</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Items list */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark, marginBottom: 10 }}>
+                      Ordered Items:
+                    </Text>
+                    {JSON.parse(typeof placedOrder.items === 'string' ? placedOrder.items : JSON.stringify(placedOrder.items || '[]')).map((item: any, idx: number) => (
+                      <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 4 }}>
+                        <Text style={{ fontSize: 13, color: T.text, flex: 1 }} numberOfLines={1}>
+                          🍽️ {item.name} <Text style={{ color: T.sub, fontWeight: '700' }}>x{item.quantity}</Text>
+                        </Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: T.dark }}>
+                          ₹{(item.price * item.quantity).toFixed(2)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Delivery Location Summary */}
+                  {selectedAddressObj && (
+                    <View style={{ marginBottom: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F0F0F5', paddingVertical: 12 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark, marginBottom: 6 }}>
+                        Delivering To:
+                      </Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: T.text }}>
+                        📍 {selectedAddressObj.receiver_name}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>
+                        {selectedAddressObj.address_line1}, {selectedAddressObj.city}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>
+                        📞 {selectedAddressObj.phone_number}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Bill Details Summary */}
+                  <View style={{ backgroundColor: '#EEF2F6', borderRadius: 12, padding: 14, marginBottom: 20 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark, marginBottom: 10 }}>
+                      Final Bill Summary:
+                    </Text>
+                    
+                    {placedOrder.discount_amount > 0 && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 3 }}>
+                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '600' }}>Applied Promo:</Text>
+                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '700' }}>
+                          🎫 {placedOrder.promo_code}
+                        </Text>
+                      </View>
+                    )}
+
+                    {placedOrder.discount_amount > 0 && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 3 }}>
+                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '600' }}>Discount Savings:</Text>
+                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '700' }}>
+                          - ₹{parseFloat(placedOrder.discount_amount).toFixed(2)}
+                        </Text>
+                      </View>
+                    )}
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 3 }}>
+                      <Text style={{ fontSize: 13, color: T.sub, fontWeight: '600' }}>Delivery Fee:</Text>
+                      <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '700' }}>FREE</Text>
+                    </View>
+
+                    <View style={{ height: 1, backgroundColor: '#D1D5DB', marginVertical: 8 }} />
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 15, fontWeight: '900', color: T.dark }}>Total Bill Amount:</Text>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: T.accent }}>
+                        ₹{parseFloat(placedOrder.total).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              ) : null}
+
+              {/* Action Buttons */}
+              <View style={{ gap: 10 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setConfirmationModalVisible(false);
+                    setActiveNav('orders');
+                  }}
+                  style={{
+                    backgroundColor: '#CCFF00',
+                    height: 50,
+                    borderRadius: 25,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderWidth: 1.5,
+                    borderColor: '#111'
+                  }}
+                >
+                  <Text style={{ color: '#111', fontWeight: '850', fontSize: 15 }}>
+                    🛵 Track Active Orders
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setConfirmationModalVisible(false);
+                    setActiveNav('home');
+                  }}
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: '#E5E7EB',
+                    height: 50,
+                    borderRadius: 25,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ color: T.sub, fontWeight: '700', fontSize: 14 }}>
+                    Go Back to Home
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
