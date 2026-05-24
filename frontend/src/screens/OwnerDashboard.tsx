@@ -4,6 +4,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, RefreshControl
 } from 'react-native';
+import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { clearSession } from '../utils/session';
 
@@ -27,10 +28,15 @@ export const OwnerDashboard = ({ navigation }: any) => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'menu'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'settings'>('orders');
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [newItem, setNewItem] = useState({ name: '', category: '', description: '', price: '' });
   const [addingItem, setAddingItem] = useState(false);
+
+  // Store settings coordinates
+  const [kitchenAddress, setKitchenAddress] = useState('');
+  const [kitchenLocation, setKitchenLocation] = useState<any>(null);
+  const [updatingLocation, setUpdatingLocation] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -56,19 +62,80 @@ export const OwnerDashboard = ({ navigation }: any) => {
     }
   };
 
+  const fetchKitchenLocation = async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/kitchen`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      const data = await res.json();
+      setKitchenLocation(data);
+      setKitchenAddress(data.address || '');
+    } catch (e) {
+      console.error('Failed to fetch kitchen location', e);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
-    await Promise.all([fetchOrders(), fetchMenu()]);
+    await Promise.all([fetchOrders(), fetchMenu(), fetchKitchenLocation()]);
     setLoading(false);
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchOrders(), fetchMenu()]);
+    await Promise.all([fetchOrders(), fetchMenu(), fetchKitchenLocation()]);
     setRefreshing(false);
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const updateStoreLocation = async () => {
+    if (!kitchenAddress.trim()) {
+      Alert.alert('Error', 'Please enter a kitchen address.');
+      return;
+    }
+    setUpdatingLocation(true);
+    try {
+      const result = await Location.geocodeAsync(kitchenAddress);
+      if (result && result.length > 0) {
+        const { latitude, longitude } = result[0];
+
+        const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+        let addressString = kitchenAddress;
+        if (geocode && geocode[0]) {
+          const item = geocode[0];
+          const parts = [
+            item.name || item.street || '',
+            item.district || item.subregion || item.city || ''
+          ].filter(Boolean);
+          addressString = parts.length > 0 ? parts.join(', ') : kitchenAddress;
+        }
+
+        const res = await fetch(`${BACKEND}/api/kitchen`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+          body: JSON.stringify({
+            address: addressString,
+            latitude,
+            longitude,
+          }),
+        });
+
+        if (res.ok) {
+          await fetchKitchenLocation();
+          Alert.alert('Success', `Store location updated to: ${addressString}`);
+        } else {
+          Alert.alert('Error', 'Failed to save location in database');
+        }
+      } else {
+        Alert.alert('Error', 'We could not geocode this address. Please try a more specific address.');
+      }
+    } catch (e) {
+      console.error('Update kitchen location failed:', e);
+      Alert.alert('Error', 'An error occurred during location update.');
+    }
+    setUpdatingLocation(false);
+  };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -170,6 +237,14 @@ export const OwnerDashboard = ({ navigation }: any) => {
             Menu ({menuItems.length})
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'settings' && styles.activeTab]}
+          onPress={() => setActiveTab('settings')}
+        >
+          <Text style={[styles.tabText, activeTab === 'settings' && styles.activeTabText]}>
+            Settings ⚙️
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -214,7 +289,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
               ))
             )}
           </>
-        ) : (
+        ) : activeTab === 'menu' ? (
           <>
             {/* Add New Item Form */}
             <View style={styles.addItemCard}>
@@ -278,6 +353,40 @@ export const OwnerDashboard = ({ navigation }: any) => {
               ))
             )}
           </>
+        ) : (
+          <View style={styles.addItemCard}>
+            <Text style={styles.sectionTitle}>⚙️ Store Kitchen Settings</Text>
+            
+            {kitchenLocation ? (
+              <View style={{ backgroundColor: '#EEF2F6', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+                <Text style={{ fontWeight: 'bold', color: '#1E293B', fontSize: 14 }}>Active Kitchen Location:</Text>
+                <Text style={{ color: '#475569', fontSize: 13, marginTop: 4 }}>📍 {kitchenLocation.address}</Text>
+                <Text style={{ color: '#64748B', fontSize: 11, marginTop: 2 }}>GPS: {kitchenLocation.latitude}, {kitchenLocation.longitude}</Text>
+              </View>
+            ) : (
+              <ActivityIndicator color="#4F46E5" style={{ marginVertical: 10 }} />
+            )}
+
+            <Text style={{ fontSize: 13, color: '#475569', marginBottom: 8, fontWeight: '600' }}>
+              Update Kitchen Address:
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Raj Nagar, Ghaziabad"
+              value={kitchenAddress}
+              onChangeText={setKitchenAddress}
+            />
+
+            <TouchableOpacity
+              style={[styles.addBtn, updatingLocation && styles.disabledBtn]}
+              onPress={updateStoreLocation}
+              disabled={updatingLocation}
+            >
+              <Text style={styles.addBtnText}>
+                {updatingLocation ? 'Geocoding & Saving...' : 'Update Store Location'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
       </ScrollView>
     </View>

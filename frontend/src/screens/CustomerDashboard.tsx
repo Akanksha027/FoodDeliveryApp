@@ -241,10 +241,37 @@ export const CustomerDashboard = ({ navigation }: any) => {
   const [manualSearchLoading, setManualSearchLoading] = useState(false);
   const [manualSearchError, setManualSearchError] = useState('');
 
+  // Configured storefront location from Admin database
+  const [storeLocation, setStoreLocation] = useState({
+    address: 'Ghaziabad Center, Uttar Pradesh, India',
+    latitude: 28.6692,
+    longitude: 77.4538
+  });
+
+  const fetchActiveKitchen = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/kitchen', {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.latitude && data.longitude) {
+          setStoreLocation(data);
+          console.log('[Location] Synchronized kitchen coordinates:', data.address, data.latitude, data.longitude);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to synchronize kitchen location settings:', e);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
+
+      // Synchronize active storefront settings
+      await fetchActiveKitchen();
 
       // Load persisted location from AsyncStorage
       try {
@@ -296,7 +323,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
       });
       const { latitude, longitude } = currentPos.coords;
 
-      const distance = getDistanceInKm(latitude, longitude, STORE_LAT, STORE_LON);
+      const distance = getDistanceInKm(latitude, longitude, storeLocation.latitude, storeLocation.longitude);
 
       const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
       let addressString = 'Ghaziabad, India';
@@ -345,7 +372,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
       const result = await Location.geocodeAsync(manualAddressInput);
       if (result && result.length > 0) {
         const { latitude, longitude } = result[0];
-        const distance = getDistanceInKm(latitude, longitude, STORE_LAT, STORE_LON);
+        const distance = getDistanceInKm(latitude, longitude, storeLocation.latitude, storeLocation.longitude);
 
         const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
         let addressString = manualAddressInput;

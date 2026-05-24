@@ -82,3 +82,19 @@ INSERT INTO menu_items (name, description, price, category) VALUES
   ('Crispy French Fries', 'Golden salted fries served with ketchup', 99, 'Sides'),
   ('Chocolaty Brownie', 'Fudgy chocolate brownie with chocolate sauce', 119, 'Desserts'),
   ('Chilled Cold Coffee', 'Rich coffee blended with vanilla ice cream', 139, 'Beverages');
+
+-- 7. Create Kitchen Location Table (dynamic store settings)
+CREATE TABLE IF NOT EXISTS kitchen_location (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  address TEXT NOT NULL,
+  latitude NUMERIC(10, 6) NOT NULL,
+  longitude NUMERIC(10, 6) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE kitchen_location DISABLE ROW LEVEL SECURITY;
+
+-- Insert default Ghaziabad center coordinates as seed
+INSERT INTO kitchen_location (address, latitude, longitude)
+VALUES ('Ghaziabad Center, Uttar Pradesh, India', 28.6692, 77.4538)
+ON CONFLICT DO NOTHING;
