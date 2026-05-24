@@ -241,6 +241,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
   // Checkout Order Placement & Bill Confirmation States
   const [placedOrder, setPlacedOrder] = useState<any>(null);
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [myOrdersModalVisible, setMyOrdersModalVisible] = useState(false);
 
   // Address form modal state
   const [addressModalVisible, setAddressModalVisible] = useState(false);
@@ -1531,6 +1532,64 @@ export const CustomerDashboard = ({ navigation }: any) => {
                 </TouchableOpacity>
               </View>
 
+              {/* Orders History section */}
+              <View style={s.profileCardContainer}>
+                <View style={s.profileSectionHeader}>
+                  <Text style={s.profileSectionTitle}>Orders History</Text>
+                  {orders.length > 0 && (
+                    <TouchableOpacity
+                      style={s.profileViewAllBtn}
+                      onPress={() => setMyOrdersModalVisible(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={s.profileViewAllBtnText}>View All ({orders.length})</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {orders.length === 0 ? (
+                  <Text style={s.emptyAddressesText}>You haven't placed any orders yet. 🍕</Text>
+                ) : (
+                  <View>
+                    {/* Render the latest order preview */}
+                    {(() => {
+                      const sortedOrders = [...orders].sort(
+                        (a, b) => new Date(b.created_at || b.id).getTime() - new Date(a.created_at || a.id).getTime()
+                      );
+                      const latestOrder = sortedOrders[0];
+                      const parsedItems = JSON.parse(
+                        typeof latestOrder.items === 'string' ? latestOrder.items : JSON.stringify(latestOrder.items || '[]')
+                      );
+                      return (
+                        <TouchableOpacity 
+                          style={s.profileLatestOrderCard}
+                          onPress={() => setMyOrdersModalVisible(true)}
+                          activeOpacity={0.85}
+                        >
+                          <View style={s.profileLatestOrderHeader}>
+                            <Text style={s.profileLatestOrderId}>
+                              Order #{latestOrder.id?.slice(-6).toUpperCase()}
+                            </Text>
+                            <View style={[s.statusBadge, { backgroundColor: STATUS_COLORS[latestOrder.status] || '#555' }]}>
+                              <Text style={s.statusBadgeText}>{latestOrder.status?.toUpperCase()}</Text>
+                            </View>
+                          </View>
+
+                          <Text style={s.profileLatestOrderItems} numberOfLines={1}>
+                            🛍️ {parsedItems.map((i: any) => `${i.name} x${i.quantity}`).join(', ')}
+                          </Text>
+
+                          <View style={s.profileLatestOrderBottom}>
+                            <Text style={s.profileLatestOrderTotal}>Total: ₹{parseFloat(latestOrder.total).toFixed(2)}</Text>
+                            <Text style={s.profileLatestOrderTap}>Tap to view all orders →</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })()}
+                  </View>
+                )}
+              </View>
+
               {/* Delivery addresses details */}
               <View style={s.profileCardContainer}>
                 <View style={s.profileSectionHeader}>
@@ -1954,6 +2013,117 @@ export const CustomerDashboard = ({ navigation }: any) => {
                   </Text>
                 </TouchableOpacity>
               </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* View All Orders Modal */}
+      <Modal
+        visible={myOrdersModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setMyOrdersModalVisible(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={[s.modalContainer, { height: '85%' }]}>
+            <View style={s.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 20 }}>📋</Text>
+                <Text style={s.modalTitle}>All My Orders</Text>
+              </View>
+              <TouchableOpacity onPress={() => setMyOrdersModalVisible(false)}>
+                <Text style={s.closeModalText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 50 }} showsVerticalScrollIndicator={false}>
+              {orders.length === 0 ? (
+                <View style={{ alignItems: 'center', marginVertical: 40 }}>
+                  <Text style={{ fontSize: 60, marginBottom: 12 }}>📋</Text>
+                  <Text style={{ color: T.sub, fontSize: 16, fontWeight: '600' }}>No orders found.</Text>
+                </View>
+              ) : (
+                [...orders]
+                  .sort((a, b) => new Date(b.created_at || b.id).getTime() - new Date(a.created_at || a.id).getTime())
+                  .map((order) => {
+                    const parsedItems = JSON.parse(
+                      typeof order.items === 'string' ? order.items : JSON.stringify(order.items || '[]')
+                    );
+                    const formattedDate = order.created_at 
+                      ? new Date(order.created_at).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : 'Recently placed';
+
+                    return (
+                      <View key={order.id} style={s.myOrdersFullCard}>
+                        <View style={s.myOrdersFullHeader}>
+                          <View>
+                            <Text style={s.myOrdersFullCode}>
+                              ORDER #{order.id?.slice(-6).toUpperCase()}
+                            </Text>
+                            <Text style={s.myOrdersFullDate}>{formattedDate}</Text>
+                          </View>
+                          <View style={[s.statusBadge, { backgroundColor: STATUS_COLORS[order.status] || '#555' }]}>
+                            <Text style={s.statusBadgeText}>{order.status?.toUpperCase()}</Text>
+                          </View>
+                        </View>
+
+                        <View style={s.myOrdersFullDivider} />
+
+                        {/* Items list */}
+                        <View style={{ marginVertical: 8 }}>
+                          {parsedItems.map((item: any, idx: number) => (
+                            <View key={idx} style={s.myOrdersFullItemRow}>
+                              <Text style={s.myOrdersFullItemName}>
+                                • {item.name} <Text style={{ color: T.sub, fontWeight: '750' }}>x{item.quantity}</Text>
+                              </Text>
+                              <Text style={s.myOrdersFullItemPrice}>
+                                ₹{(parseFloat(item.price) * item.quantity).toFixed(2)}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+
+                        <View style={s.myOrdersFullDivider} />
+
+                        {/* Pricing details */}
+                        <View style={{ gap: 4, marginTop: 4 }}>
+                          {parseFloat(order.discount_amount) > 0 && (
+                            <View style={s.myOrdersFullPriceRow}>
+                              <Text style={{ fontSize: 12, color: T.green, fontWeight: '600' }}>Promo Code ({order.promo_code}):</Text>
+                              <Text style={{ fontSize: 12, color: T.green, fontWeight: '700' }}>
+                                - ₹{parseFloat(order.discount_amount).toFixed(2)}
+                              </Text>
+                            </View>
+                          )}
+                          <View style={s.myOrdersFullPriceRow}>
+                            <Text style={{ fontSize: 13, color: T.text, fontWeight: '750' }}>Total Paid:</Text>
+                            <Text style={{ fontSize: 14, color: T.accent, fontWeight: '900' }}>
+                              ₹{parseFloat(order.total).toFixed(2)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Quick actions e.g. cancel order */}
+                        {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                          <TouchableOpacity
+                            style={s.myOrdersFullCancelBtn}
+                            onPress={() => handleCancelOrder(order.id)}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={s.myOrdersFullCancelBtnTxt}>Cancel Order</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    );
+                  })
+              )}
             </ScrollView>
           </View>
         </View>
@@ -2605,5 +2775,119 @@ const s = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  profileViewAllBtn: {
+    backgroundColor: T.accentBg,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  profileViewAllBtnText: {
+    color: T.accent,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  profileLatestOrderCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 8,
+  },
+  profileLatestOrderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  profileLatestOrderId: {
+    fontWeight: '800',
+    fontSize: 13,
+    color: T.text,
+  },
+  profileLatestOrderItems: {
+    fontSize: 12,
+    color: T.sub,
+    marginBottom: 8,
+  },
+  profileLatestOrderBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  profileLatestOrderTotal: {
+    fontWeight: '800',
+    fontSize: 13,
+    color: T.accent,
+  },
+  profileLatestOrderTap: {
+    fontSize: 11,
+    color: T.sub,
+    fontWeight: '600',
+  },
+  myOrdersFullCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#F0F0F5',
+    ...shadow(3),
+  },
+  myOrdersFullHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  myOrdersFullCode: {
+    fontWeight: '850',
+    fontSize: 13,
+    color: T.text,
+  },
+  myOrdersFullDate: {
+    fontSize: 11,
+    color: T.sub,
+    marginTop: 2,
+  },
+  myOrdersFullDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F5',
+    marginVertical: 10,
+  },
+  myOrdersFullItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 3,
+  },
+  myOrdersFullItemName: {
+    fontSize: 12.5,
+    color: T.text,
+    flex: 1,
+    marginRight: 8,
+  },
+  myOrdersFullItemPrice: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: T.text,
+  },
+  myOrdersFullPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  myOrdersFullCancelBtn: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  myOrdersFullCancelBtnTxt: {
+    color: '#E11D48',
+    fontWeight: '800',
+    fontSize: 12,
   },
 });
