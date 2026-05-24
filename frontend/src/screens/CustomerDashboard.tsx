@@ -811,7 +811,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
               Delivery Location Required
             </Text>
             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 }}>
-              To view the menu and order fresh meals, please share your location. We deliver within a strict 6km boundary of our Ghaziabad kitchen.
+              To view the menu and order fresh meals, please share your location. We deliver within a strict {MAX_DELIVERY_RADIUS_KM}km boundary of our kitchen located in {storeLocation.address?.split(',')[0] || 'Ghaziabad'}.
             </Text>
           </View>
 
@@ -863,7 +863,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
               Out of Delivery Range
             </Text>
             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 }}>
-              Our central kitchen is located in Ghaziabad and can only deliver fresh meals within a 6km radius.
+              Our central kitchen is located in {storeLocation.address?.split(',')[0] || 'Ghaziabad'} and can only deliver fresh meals within a {MAX_DELIVERY_RADIUS_KM}km radius.
             </Text>
           </View>
 
@@ -889,7 +889,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
               activeOpacity={0.8}
             >
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
-                ✍️ Enter a Ghaziabad Address
+                ✍️ Enter a Delivery Address
               </Text>
             </TouchableOpacity>
 
@@ -926,7 +926,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
               Enter Address
             </Text>
             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 20, marginBottom: 24 }}>
-              Enter a delivery location in Ghaziabad (e.g. "Kavi Nagar", "Raj Nagar", or "Sector 15, Ghaziabad") to confirm it is within range.
+              Enter a delivery location (near our kitchen at {storeLocation.address || 'Ghaziabad'}) to confirm it is within range.
             </Text>
 
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
