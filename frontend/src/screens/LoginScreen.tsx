@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { useFonts, Fredoka_400Regular, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
+import { useFonts, Poppins_900Black } from '@expo-google-fonts/poppins';
 import { supabase } from '../lib/supabase';
 import { storeSession } from '../utils/session';
 
@@ -33,8 +33,7 @@ export const LoginScreen = ({ navigation }: any) => {
   const navigated = useRef(false); // prevent double navigation on re-render
 
   const [fontsLoaded] = useFonts({
-    Fredoka_400Regular,
-    Fredoka_700Bold,
+    Poppins_900Black,
   });
 
   const handleUserRouting = async (user: any, accessToken: string) => {
@@ -257,19 +256,19 @@ const styles = StyleSheet.create({
     marginTop: 65,
   },
   welcomeTitle: {
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Poppins_900Black',
     fontSize: 42,
     color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: -1,
+    letterSpacing: -1.8,
     lineHeight: 48,
   },
   welcomeTitleAccent: {
-    fontFamily: 'Fredoka_700Bold',
+    fontFamily: 'Poppins_900Black',
     fontSize: 44,
     color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: -1,
+    letterSpacing: -1.8,
     lineHeight: 48,
   },
   burgerContainer: {
