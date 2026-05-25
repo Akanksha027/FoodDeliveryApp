@@ -68,8 +68,9 @@ export const OwnerDashboard = ({ navigation }: any) => {
       });
       const data = await res.json();
       setMenuItems(Array.isArray(data) ? data : []);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to fetch menu', e);
+      Alert.alert('Network Error', `Could not reach backend: ${e.message}\nURL: ${BACKEND}`);
     }
   };
 
