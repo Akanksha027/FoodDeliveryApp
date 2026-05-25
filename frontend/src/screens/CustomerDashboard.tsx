@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  SafeAreaView,
   Platform,
   Dimensions,
   Alert,
@@ -18,6 +17,8 @@ import {
   TextInput,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
@@ -848,47 +849,49 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
   if (locationState === 'requesting' || locationState === 'detecting') {
     return (
-      <SafeAreaView style={[s.safe, { backgroundColor: T.dark }]}>
-        <StatusBar barStyle="light-content" backgroundColor={T.dark} />
-        <View style={[s.root, isWeb && s.webWrapper, { justifyContent: 'center', padding: 24, backgroundColor: T.dark }]}>
+      <SafeAreaView style={[s.safe, { backgroundColor: '#F5F6FA' }]} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F5F6FA" />
+        <View style={[s.root, isWeb && s.webWrapper, { justifyContent: 'center', padding: 24, backgroundColor: '#F5F6FA' }]}>
           <View style={{ alignItems: 'center', marginBottom: 40 }}>
-            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,90,48,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 64 }}>📍</Text>
+            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: '#FFF4F1', justifyContent: 'center', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#FFE0D6', ...shadow(3) }}>
+              <Ionicons name="location" size={54} color="#FF6B35" />
             </View>
-            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', textAlign: 'center', marginBottom: 12 }}>
+            <Text style={{ color: '#1C1C2E', fontSize: 26, fontWeight: '900', textAlign: 'center', marginBottom: 12, letterSpacing: -0.5 }}>
               Delivery Location Required
             </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 }}>
-              To view the menu and order fresh meals, please share your location. We deliver within a strict {MAX_DELIVERY_RADIUS_KM}km boundary of our kitchen located in {storeLocation.address?.split(',')[0] || 'Ghaziabad'}.
+            <Text style={{ color: '#8E8E93', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 }}>
+              To view the menu and order fresh meals, please share your location. We deliver within a strict {MAX_DELIVERY_RADIUS_KM}km boundary of our kitchen in {storeLocation.address?.split(',')[0] || 'Ghaziabad'}.
             </Text>
           </View>
 
           {locationState === 'detecting' ? (
             <View style={{ alignItems: 'center', marginVertical: 20 }}>
-              <ActivityIndicator size="large" color={T.accent} />
-              <Text style={{ color: '#fff', marginTop: 16, fontSize: 15, fontWeight: '600' }}>
+              <ActivityIndicator size="large" color="#FF6B35" />
+              <Text style={{ color: '#1C1C2E', marginTop: 16, fontSize: 15, fontWeight: '600' }}>
                 Detecting coordinates via GPS...
               </Text>
             </View>
           ) : (
             <View style={{ gap: 14 }}>
               <TouchableOpacity
-                style={{ backgroundColor: '#CCFF00', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', ...shadow(4) }}
+                style={{ backgroundColor: '#FF6B35', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', ...shadow(4) }}
                 onPress={handleDetectGPS}
                 activeOpacity={0.8}
               >
-                <Text style={{ color: '#111', fontWeight: '800', fontSize: 16 }}>
-                  📍 Share Current Location (GPS)
+                <Ionicons name="location-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 16 }}>
+                  Share Current Location (GPS)
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={{ borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}
+                style={{ borderWidth: 1.5, borderColor: '#FF6B35', backgroundColor: '#FFFFFF', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', ...shadow(2) }}
                 onPress={() => setLocationState('manual_input')}
                 activeOpacity={0.8}
               >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
-                  ✍️ Enter Address Manually
+                <Feather name="edit" size={18} color="#FF6B35" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#FF6B35', fontWeight: '700', fontSize: 15 }}>
+                  Enter Address Manually
                 </Text>
               </TouchableOpacity>
             </View>
@@ -900,54 +903,59 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
   if (locationState === 'out_of_range') {
     return (
-      <SafeAreaView style={[s.safe, { backgroundColor: T.dark }]}>
-        <StatusBar barStyle="light-content" backgroundColor={T.dark} />
-        <View style={[s.root, isWeb && s.webWrapper, { justifyContent: 'center', padding: 24, backgroundColor: T.dark }]}>
+      <SafeAreaView style={[s.safe, { backgroundColor: '#F5F6FA' }]} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F5F6FA" />
+        <View style={[s.root, isWeb && s.webWrapper, { justifyContent: 'center', padding: 24, backgroundColor: '#F5F6FA' }]}>
           <View style={{ alignItems: 'center', marginBottom: 32 }}>
-            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(239,68,68,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-              <Text style={{ fontSize: 64 }}>🛵❌</Text>
+            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#FEE2E2', ...shadow(3) }}>
+              <Ionicons name="warning-outline" size={54} color="#EF4444" />
             </View>
-            <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', textAlign: 'center', marginBottom: 12 }}>
+            <Text style={{ color: '#1C1C2E', fontSize: 24, fontWeight: '900', textAlign: 'center', marginBottom: 12, letterSpacing: -0.5 }}>
               Out of Delivery Range
             </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 }}>
-              Our central kitchen is located in {storeLocation.address?.split(',')[0] || 'Ghaziabad'} and can only deliver fresh meals within a {MAX_DELIVERY_RADIUS_KM}km radius.
+            <Text style={{ color: '#8E8E93', fontSize: 15, textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 }}>
+              Our kitchen in {storeLocation.address?.split(',')[0] || 'Ghaziabad'} delivers delicious fresh meals within a strict {MAX_DELIVERY_RADIUS_KM}km radius.
             </Text>
           </View>
 
           {detectedLocation && (
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 32 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
+            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 32, ...shadow(2) }}>
+              <Text style={{ color: '#8E8E93', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
                 Detected Location
               </Text>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 10 }}>
+              <Text style={{ color: '#1C1C2E', fontSize: 15, fontWeight: '700', marginBottom: 12, lineHeight: 20 }}>
                 📍 {detectedLocation.address}
               </Text>
-              <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 10 }} />
-              <Text style={{ color: T.accent, fontSize: 15, fontWeight: '800' }}>
-                📏 Distance: {detectedLocation.distance} km away (Exceeds 6km limit)
-              </Text>
+              <View style={{ height: 1, backgroundColor: '#F0F0F5', marginBottom: 12 }} />
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="navigate-outline" size={16} color="#FF6B35" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#FF6B35', fontSize: 14, fontWeight: '800' }}>
+                  Distance: {detectedLocation.distance} km away (Exceeds {MAX_DELIVERY_RADIUS_KM}km limit)
+                </Text>
+              </View>
             </View>
           )}
 
           <View style={{ gap: 14 }}>
             <TouchableOpacity
-              style={{ backgroundColor: T.accent, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', ...shadow(4) }}
+              style={{ backgroundColor: '#FF6B35', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', ...shadow(4) }}
               onPress={() => setLocationState('manual_input')}
               activeOpacity={0.8}
             >
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
-                ✍️ Enter a Delivery Address
+              <Feather name="edit" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 16 }}>
+                Enter a Delivery Address
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={{ borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' }}
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', ...shadow(2) }}
               onPress={handleDetectGPS}
               activeOpacity={0.8}
             >
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
-                🔄 Re-detect GPS Location
+              <Ionicons name="refresh-outline" size={18} color="#1C1C2E" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#1C1C2E', fontWeight: '700', fontSize: 15 }}>
+                Re-detect GPS Location
               </Text>
             </TouchableOpacity>
           </View>
@@ -958,32 +966,33 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
   if (locationState === 'manual_input') {
     return (
-      <SafeAreaView style={[s.safe, { backgroundColor: T.dark }]}>
-        <StatusBar barStyle="light-content" backgroundColor={T.dark} />
-        <View style={[s.root, isWeb && s.webWrapper, { padding: 24, backgroundColor: T.dark, justifyContent: 'space-between' }]}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 30 }}>
+      <SafeAreaView style={[s.safe, { backgroundColor: '#F5F6FA' }]} edges={['top', 'bottom', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F5F6FA" />
+        <View style={[s.root, isWeb && s.webWrapper, { padding: 24, backgroundColor: '#F5F6FA', justifyContent: 'space-between' }]}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 10 }}>
             <TouchableOpacity
-              style={{ alignSelf: 'flex-start', paddingVertical: 10, paddingRight: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}
+              style={{ alignSelf: 'flex-start', paddingVertical: 10, paddingRight: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}
               onPress={() => setLocationState('requesting')}
+              activeOpacity={0.7}
             >
-              <Text style={{ color: T.accent, fontSize: 18, marginRight: 6 }}>←</Text>
-              <Text style={{ color: T.accent, fontSize: 16, fontWeight: '700' }}>Back</Text>
+              <Ionicons name="arrow-back" size={20} color="#FF6B35" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#FF6B35', fontSize: 16, fontWeight: '700' }}>Back</Text>
             </TouchableOpacity>
 
-            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginBottom: 10 }}>
+            <Text style={{ color: '#1C1C2E', fontSize: 28, fontWeight: '900', marginBottom: 8, letterSpacing: -0.5 }}>
               Enter Address
             </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 20, marginBottom: 24 }}>
+            <Text style={{ color: '#8E8E93', fontSize: 14, lineHeight: 20, marginBottom: 28 }}>
               Enter a delivery location (near our kitchen at {storeLocation.address || 'Ghaziabad'}) to confirm it is within range.
             </Text>
 
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+            <Text style={{ color: '#1C1C2E', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
               Delivery Street or Sector
             </Text>
             <TextInput
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, height: 56, color: '#fff', paddingHorizontal: 16, fontSize: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 12 }}
+              style={{ backgroundColor: '#FFFFFF', borderRadius: 16, height: 56, color: '#1C1C2E', paddingHorizontal: 16, fontSize: 16, borderWidth: 1.5, borderColor: '#E5E7EB', marginBottom: 16, ...shadow(1) }}
               placeholder="e.g. Kavi Nagar, Ghaziabad"
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor="#BBBBBB"
               value={manualAddressInput}
               onChangeText={(text) => {
                 setManualAddressInput(text);
@@ -992,34 +1001,38 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
             />
 
             {manualSearchError ? (
-              <View style={{ backgroundColor: 'rgba(239,68,68,0.1)', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', marginBottom: 20 }}>
-                <Text style={{ color: '#EF4444', fontSize: 13, lineHeight: 18, fontWeight: '600' }}>
-                  ⚠️ {manualSearchError}
+              <View style={{ backgroundColor: '#FEF2F2', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#FEE2E2', marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="alert-circle" size={18} color="#EF4444" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#EF4444', fontSize: 13, lineHeight: 18, fontWeight: '600', flex: 1 }}>
+                  {manualSearchError}
                 </Text>
               </View>
             ) : null}
 
             {manualSearchLoading ? (
-              <ActivityIndicator size="large" color={T.accent} style={{ marginVertical: 20 }} />
+              <ActivityIndicator size="large" color="#FF6B35" style={{ marginVertical: 20 }} />
             ) : (
               <TouchableOpacity
-                style={{ backgroundColor: '#CCFF00', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginTop: 10, ...shadow(4) }}
+                style={{ backgroundColor: '#FF6B35', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginTop: 10, flexDirection: 'row', ...shadow(4) }}
                 onPress={handleManualSearch}
                 activeOpacity={0.8}
               >
-                <Text style={{ color: '#111', fontWeight: '800', fontSize: 16 }}>
-                  🔍 Search & Validate Address
+                <Ionicons name="search" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 16 }}>
+                  Search & Validate Address
                 </Text>
               </TouchableOpacity>
             )}
           </ScrollView>
 
           <TouchableOpacity
-            style={{ borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}
+            style={{ borderWidth: 1.5, borderColor: '#FF6B35', backgroundColor: '#FFFFFF', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 20, flexDirection: 'row', ...shadow(2) }}
             onPress={() => setLocationState('requesting')}
+            activeOpacity={0.8}
           >
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontWeight: '700', fontSize: 15 }}>
-              📍 Detect Coordinates (GPS)
+            <Ionicons name="location-outline" size={18} color="#FF6B35" style={{ marginRight: 8 }} />
+            <Text style={{ color: '#FF6B35', fontWeight: '700', fontSize: 15 }}>
+              Detect Coordinates (GPS)
             </Text>
           </TouchableOpacity>
         </View>
