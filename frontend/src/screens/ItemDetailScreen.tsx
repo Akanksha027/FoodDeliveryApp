@@ -136,9 +136,10 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     outputRange: ['#FF6B35', '#1A1A1A'],
   });
 
-  const sizePrice = (basePrice: number) => {
+  const sizePrice = (basePrice: any) => {
+    const parsedBase = typeof basePrice === 'string' ? parseFloat(basePrice) : (basePrice || 0);
     const offset = SIZE_OPTIONS[selectedSize].price;
-    return (basePrice + offset).toFixed(2);
+    return (parsedBase + offset).toFixed(2);
   };
 
   if (loading || !item) {
@@ -231,7 +232,7 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
                   activeOpacity={0.75}
                 >
                   <Text style={[s.sizePillPrice, selected && s.sizePillPriceSelected]}>
-                    ₹{(item.price + opt.price).toFixed(2)}
+                    ₹{(parseFloat(item.price) + opt.price).toFixed(2)}
                   </Text>
                   <Text style={[s.sizePillLabel, selected && s.sizePillLabelSelected]}>
                     {opt.size} - {opt.label}
@@ -343,8 +344,6 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     // simulated gradient: transparent top → dark bottom
     backgroundColor: 'transparent',
-    // We use opacity layers for gradient effect
-    backgroundGradient: undefined,
   },
   headerSafeArea: {
     position: 'absolute',
