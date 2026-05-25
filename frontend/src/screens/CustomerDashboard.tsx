@@ -1239,6 +1239,17 @@ export const CustomerDashboard = ({ navigation }: any) => {
       >
         <View style={s.modalOverlay}>
           <View style={[s.modalContainer, { maxHeight: '75%' }]}>
+            {/* Grab handle bar */}
+            <View style={{
+              width: 42,
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: '#E2E8F0',
+              alignSelf: 'center',
+              marginTop: 10,
+              marginBottom: 2,
+            }} />
+
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>🏷️ Available Coupons</Text>
               <TouchableOpacity onPress={() => setCouponsModalVisible(false)}>
@@ -1249,7 +1260,10 @@ export const CustomerDashboard = ({ navigation }: any) => {
             {loadingCoupons ? (
               <ActivityIndicator color={T.accent} style={{ marginVertical: 30 }} />
             ) : (
-              <ScrollView contentContainerStyle={{ padding: 16 }}>
+              <ScrollView
+                style={{ backgroundColor: '#F8FAFC' }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+              >
                 {allCoupons.length === 0 ? (
                   <Text style={{ textAlign: 'center', color: T.sub, marginVertical: 20 }}>No coupons available right now</Text>
                 ) : (
@@ -1274,43 +1288,166 @@ export const CustomerDashboard = ({ navigation }: any) => {
                           } with code ${coupon.code}!`);
                         }}
                         style={{
-                          backgroundColor: isEligible ? '#E5E7EB' : '#F3F4F6', // Highlight grey bg if eligible, faint grey if not
-                          borderRadius: 12,
+                          backgroundColor: '#FFFFFF',
+                          borderRadius: 16,
                           padding: 16,
-                          marginBottom: 12,
+                          marginBottom: 16,
                           borderWidth: 1.5,
-                          borderColor: isEligible ? '#9CA3AF' : '#E5E7EB',
-                          opacity: isEligible ? 1 : 0.6,
+                          borderColor: isEligible ? T.accent : '#E2E8F0',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          opacity: isEligible ? 1 : 0.8,
+                          ...Platform.select({
+                            ios: {
+                              shadowColor: isEligible ? T.accent : '#000',
+                              shadowOpacity: isEligible ? 0.08 : 0.04,
+                              shadowRadius: 8,
+                              shadowOffset: { width: 0, height: 4 },
+                            },
+                            android: {
+                              elevation: isEligible ? 4 : 2,
+                            },
+                          }),
                         }}
                       >
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 16, fontWeight: '800', color: T.dark, letterSpacing: 0.5 }}>
-                            🎫 {coupon.code}
-                          </Text>
+                        {/* Vertical Status Indicator Banner */}
+                        <View style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 6,
+                          backgroundColor: isEligible ? T.accent : '#CBD5E1',
+                        }} />
+
+                        {/* Top Row: Promo Code & Badges */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 8 }}>
+                          <View style={{
+                            backgroundColor: isEligible ? T.accentBg : '#F1F5F9',
+                            borderWidth: 1,
+                            borderColor: isEligible ? '#FFD0C3' : '#E2E8F0',
+                            borderStyle: 'dashed',
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 8,
+                          }}>
+                            <Text style={{
+                              fontSize: 14,
+                              fontWeight: '800',
+                              color: isEligible ? T.accent : '#64748B',
+                              letterSpacing: 1,
+                            }}>
+                              🎫 {coupon.code}
+                            </Text>
+                          </View>
+
                           {isEligible ? (
-                            <View style={{ backgroundColor: '#00C853', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
-                              <Text style={{ fontSize: 10, color: '#fff', fontWeight: 'bold' }}>APPLY NOW</Text>
+                            <View style={{
+                              backgroundColor: T.accent,
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
+                              borderRadius: 20,
+                              ...Platform.select({
+                                ios: {
+                                  shadowColor: T.accent,
+                                  shadowOpacity: 0.25,
+                                  shadowRadius: 4,
+                                  shadowOffset: { width: 0, height: 2 },
+                                },
+                                android: {
+                                  elevation: 2,
+                                },
+                              }),
+                            }}>
+                              <Text style={{ fontSize: 11, color: '#fff', fontWeight: '900', letterSpacing: 0.5 }}>APPLY</Text>
                             </View>
                           ) : (
-                            <View style={{ backgroundColor: '#D1D5DB', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
-                              <Text style={{ fontSize: 10, color: '#4B5563', fontWeight: 'bold' }}>LOCKED</Text>
+                            <View style={{
+                              backgroundColor: '#E2E8F0',
+                              paddingHorizontal: 10,
+                              paddingVertical: 6,
+                              borderRadius: 20,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}>
+                              <Text style={{ fontSize: 11 }}>🔒</Text>
+                              <Text style={{ fontSize: 10, color: '#64748B', fontWeight: '700' }}>LOCKED</Text>
                             </View>
                           )}
                         </View>
 
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: T.text, marginTop: 6 }}>
-                          {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% Off` : `Flat ₹${coupon.discount_value} Off`}
-                        </Text>
+                        {/* Mid Row: Coupon Amount & Info */}
+                        <View style={{ paddingLeft: 8, marginTop: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                            <Text style={{
+                              fontSize: 26,
+                              fontWeight: '900',
+                              color: isEligible ? T.dark : '#475569',
+                            }}>
+                              {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
+                            </Text>
+                            <Text style={{
+                              fontSize: 13,
+                              fontWeight: '800',
+                              color: isEligible ? T.accent : '#64748B',
+                              marginLeft: 6,
+                            }}>
+                              FLAT DISCOUNT
+                            </Text>
+                          </View>
 
-                        <Text style={{ fontSize: 12, color: T.sub, marginTop: 4 }}>
-                          🛒 Valid on orders above ₹{parseFloat(coupon.min_order_value).toFixed(2)}
-                        </Text>
-
-                        {!isEligible && (
-                          <Text style={{ fontSize: 11, color: T.accent, fontWeight: '600', marginTop: 8 }}>
-                            💡 Add ₹{(parseFloat(coupon.min_order_value) - subtotal).toFixed(2)} more to unlock this coupon!
+                          <Text style={{ fontSize: 12.5, color: '#64748B', marginTop: 4, fontWeight: '500' }}>
+                            🛒 Valid on orders above <Text style={{ fontWeight: '700', color: T.dark }}>₹{parseFloat(coupon.min_order_value).toFixed(0)}</Text>
                           </Text>
+                        </View>
+
+                        {/* Ineligibility Warning Box */}
+                        {!isEligible && (
+                          <View style={{
+                            backgroundColor: '#FFF8F6',
+                            borderWidth: 1,
+                            borderColor: '#FFEAE5',
+                            borderRadius: 10,
+                            padding: 10,
+                            marginTop: 12,
+                            marginLeft: 8,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}>
+                            <Text style={{ fontSize: 14 }}>💡</Text>
+                            <Text style={{ fontSize: 11, color: T.accent, fontWeight: '600', flex: 1, lineHeight: 15 }}>
+                              Add <Text style={{ fontWeight: '800' }}>₹{(parseFloat(coupon.min_order_value) - subtotal).toFixed(0)}</Text> more to unlock this coupon!
+                            </Text>
+                          </View>
                         )}
+
+                        {/* Left & Right Physical Ticket Tear-off Cutouts */}
+                        <View style={{
+                          position: 'absolute',
+                          left: -8,
+                          top: '50%',
+                          marginTop: -8,
+                          width: 16,
+                          height: 16,
+                          borderRadius: 8,
+                          backgroundColor: '#F8FAFC', // Blends seamlessly with ScrollView background
+                          borderWidth: 1.5,
+                          borderColor: isEligible ? T.accent : '#E2E8F0',
+                        }} />
+                        <View style={{
+                          position: 'absolute',
+                          right: -8,
+                          top: '50%',
+                          marginTop: -8,
+                          width: 16,
+                          height: 16,
+                          borderRadius: 8,
+                          backgroundColor: '#F8FAFC',
+                          borderWidth: 1.5,
+                          borderColor: isEligible ? T.accent : '#E2E8F0',
+                        }} />
                       </TouchableOpacity>
                     );
                   })
