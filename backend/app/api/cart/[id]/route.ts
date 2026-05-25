@@ -12,10 +12,11 @@ export async function OPTIONS() {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const body = await req.json();
   const { quantity } = body;
+  const { id } = await params;
 
   if (quantity === undefined || quantity < 0) {
     return withCors({ error: 'Valid quantity is required (>= 0)' }, 400);
@@ -26,7 +27,7 @@ export async function PATCH(
     const { error } = await supabaseAdmin
       .from('cart_items')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) return withCors({ error: error.message }, 500);
     return withCors({ success: true, removed: true });
@@ -35,7 +36,7 @@ export async function PATCH(
   const { data, error } = await supabaseAdmin
     .from('cart_items')
     .update({ quantity })
-    .eq('id', params.id)
+    .eq('id', id)
     .select()
     .single();
 
@@ -45,12 +46,13 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { error } = await supabaseAdmin
     .from('cart_items')
     .delete()
-    .eq('id', params.id);
+    .eq('id', id);
 
   if (error) return withCors({ error: error.message }, 500);
   return withCors({ success: true });

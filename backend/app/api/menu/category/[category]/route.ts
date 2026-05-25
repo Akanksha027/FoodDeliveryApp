@@ -11,9 +11,10 @@ export async function OPTIONS() {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { category: string } }
+  { params }: { params: Promise<{ category: string }> }
 ) {
-  const category = decodeURIComponent(params.category).toLowerCase();
+  const { category: rawCategory } = await params;
+  const category = decodeURIComponent(rawCategory).toLowerCase();
 
   const { data, error } = await supabaseAdmin
     .from('menu_items')

@@ -9,10 +9,10 @@ export async function OPTIONS() {
 
 export async function PUT(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if the order is already delivered or cancelled
     const { data: order, error: fetchError } = await supabaseAdmin
