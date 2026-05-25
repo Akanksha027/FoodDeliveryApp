@@ -10,11 +10,13 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { useFonts, Fredoka_400Regular, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import { supabase } from '../lib/supabase';
 import { storeSession } from '../utils/session';
 
@@ -29,6 +31,11 @@ const ACTUAL_LAYOUT_W = isWeb ? Math.min(SW, LAYOUT_MAX_W) : SW;
 
 export const LoginScreen = ({ navigation }: any) => {
   const navigated = useRef(false); // prevent double navigation on re-render
+
+  const [fontsLoaded] = useFonts({
+    Fredoka_400Regular,
+    Fredoka_700Bold,
+  });
 
   const handleUserRouting = async (user: any, accessToken: string) => {
     if (navigated.current) return; // guard against calling twice
@@ -148,14 +155,18 @@ export const LoginScreen = ({ navigation }: any) => {
     }
   };
 
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FF3D16', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor="#FF3D16" />
       <View style={[styles.container, isWeb && styles.webWrapper]}>
-        {/* Top badge */}
-        <View style={styles.promoBadge}>
-          <Text style={styles.promoBadgeText}>Earn Crowns - Join Now</Text>
-        </View>
 
         {/* Title */}
         <View style={styles.titleContainer}>
@@ -165,7 +176,7 @@ export const LoginScreen = ({ navigation }: any) => {
 
         {/* Big Burger Asset Image */}
         <View style={styles.burgerContainer}>
-          <Image source={require('../../assets/burger.png')} style={styles.burgerImage} />
+          <Image source={require('../../assets/homeBurger.png')} style={styles.burgerImage} />
         </View>
 
         {/* Action Buttons */}
@@ -243,19 +254,19 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 65,
   },
   welcomeTitle: {
+    fontFamily: 'Fredoka_700Bold',
     fontSize: 42,
-    fontWeight: '900',
     color: '#FFFFFF',
     textAlign: 'center',
     letterSpacing: -1,
-    lineHeight: 46,
+    lineHeight: 48,
   },
   welcomeTitleAccent: {
+    fontFamily: 'Fredoka_700Bold',
     fontSize: 44,
-    fontWeight: '900',
     color: '#FFFFFF',
     textAlign: 'center',
     letterSpacing: -1,
@@ -268,8 +279,8 @@ const styles = StyleSheet.create({
     marginVertical: 14,
   },
   burgerImage: {
-    width: ACTUAL_LAYOUT_W * 0.78,
-    height: ACTUAL_LAYOUT_W * 0.78,
+    width: ACTUAL_LAYOUT_W * 0.99,
+    height: ACTUAL_LAYOUT_W * 0.99,
     resizeMode: 'contain',
   },
   actionContainer: {
