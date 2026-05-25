@@ -44,6 +44,11 @@ import {
   getPromoCodes,
 } from '../lib/api';
 
+import { CustomerHomeScreen } from './CustomerHomeScreen';
+import { CustomerFavoritesScreen } from './CustomerFavoritesScreen';
+import { CustomerCartScreen } from './CustomerCartScreen';
+import { CustomerProfileScreen } from './CustomerProfileScreen';
+
 // ─── Theme Design Tokens ──────────────────────────────────
 const T = {
   bg: '#F5F6FA',
@@ -1024,696 +1029,74 @@ export const CustomerDashboard = ({ navigation }: any) => {
           contentContainerStyle={s.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} colors={[T.accent]} />}
         >
-          {/* ───────────────── HOME TAB ───────────────── */}
+          {/* ───────────────── modular tabs ───────────────── */}
           {activeNav === 'home' && (
-            <>
-              {/* ── Header ── */}
-              <View style={s.foodHomeHeader}>
-                <TouchableOpacity
-                  style={s.locationRow}
-                  activeOpacity={0.7}
-                  onPress={() => setLocationState('requesting')}
-                >
-                  <Image source={require('../../assets/navigation.png')} style={s.locationIconImg} resizeMode="contain" />
-                  <Text style={[s.locationText, { maxWidth: ACTUAL_LAYOUT_W - 120 }]} numberOfLines={1}>
-                    {detectedLocation?.address || 'Set Location'}
-                  </Text>
-                  <Text style={{ fontSize: 12, marginLeft: 4, color: T.accent }}>▼</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.heartCircle} activeOpacity={0.75} onPress={() => setActiveNav('cart')}>
-                  <Image source={require('../../assets/tabs/cart.png')} style={s.heartCircleIconImg} resizeMode="contain" />
-                  {cartCount > 0 && <View style={s.notifPip} />}
-                </TouchableOpacity>
-              </View>
-
-              {/* ── Search ── */}
-              <View style={s.searchBar}>
-                <Image source={require('../../assets/search.png')} style={s.searchIconImg} resizeMode="contain" />
-                <TextInput
-                  style={s.searchInput}
-                  placeholder="Type to search"
-                  placeholderTextColor="#aaa"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-              </View>
-
-              {/* ── Categories ── */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={s.categoryRow}
-              >
-                {CATEGORIES.filter(c => c.id !== 'fries').map(cat => (
-                  <CategoryPill
-                    key={cat.id}
-                    item={cat}
-                    selected={activeCategory === cat.id}
-                    onPress={() => setActiveCategory(prev => prev === cat.id ? '' : cat.id)}
-                  />
-                ))}
-              </ScrollView>
-
-              {/* ── Popular Food (Only visible when not searching or filtering) ── */}
-              {!searchQuery && !activeCategory && (
-                <>
-                  <View style={s.foodHomeSectionHeader}>
-                    <Text style={s.foodHomeSectionTitle}>Popular Food</Text>
-                    <TouchableOpacity activeOpacity={0.7}>
-                      <Text style={s.seeAllText}>See All</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Horizontal cards */}
-                  <FlatList
-                    data={menuItems.slice(0, 4)}
-                    keyExtractor={i => i.id}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={s.cardList}
-                    renderItem={({ item }) => (
-                      <FoodCard 
-                        item={item} 
-                        cartQty={getCartQty(item.id)}
-                        cartItem={cart.find((c: any) => c.id === item.id)}
-                        onAddToCart={handleAddToCart}
-                        onUpdateQty={handleUpdateQty}
-                        isLiked={liked[item.id]}
-                        onToggleLike={toggleLike}
-                      />
-                    )}
-                    snapToInterval={ACTUAL_LAYOUT_W * 0.62 + 16}
-                    decelerationRate="fast"
-                  />
-                </>
-              )}
-
-              {/* Menu Items Grid */}
-              <View style={s.sectionHeader}>
-                <Text style={s.sectionTitle}>
-                  {searchQuery || activeCategory ? 'Search Results' : 'Menu'}
-                </Text>
-                <Text style={s.seeAll}>Our Dishes</Text>
-              </View>
-
-              <View style={s.foodGrid}>
-                {filteredFoods.map(item => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[s.fcard, { width: CARD_W }]}
-                    activeOpacity={0.9}
-                    onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-                  >
-                    <View style={s.fcardImg}>
-                      <Image source={getDishImage(item.name)} style={s.fcardImage} />
-
-                      <TouchableOpacity
-                        style={s.likeBtn}
-                        onPress={() => toggleLike(item.id)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={s.likeTxt}>{liked[item.id] ? '❤️' : '🤍'}</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={s.fcardBody}>
-                      <Text style={s.fcardName} numberOfLines={1}>{item.name}</Text>
-                      <Text style={s.fcardShop} numberOfLines={1}>
-                        {item.description || 'Cooked fresh by top chefs.'}
-                      </Text>
-                      <View style={s.fcardFoot}>
-                        <Text style={s.fcardPrice}>₹{item.price}</Text>
-
-                        <View style={s.qtyControlRow}>
-                          {getCartQty(item.id) > 0 && (
-                            <>
-                              <TouchableOpacity
-                                style={s.smallQtyBtn}
-                                onPress={() => {
-                                  const cartItem = cart.find(c => c.id === item.id);
-                                  if (cartItem) handleUpdateQty(cartItem.cart_item_id, cartItem.quantity, false);
-                                }}
-                              >
-                                <Text style={s.smallQtyBtnText}>−</Text>
-                              </TouchableOpacity>
-                              <Text style={s.qtyCardText}>{getCartQty(item.id)}</Text>
-                            </>
-                          )}
-
-                          <TouchableOpacity style={s.addBtn} onPress={() => handleAddToCart(item)} activeOpacity={0.8}>
-                            <Text style={s.addBtnTxt}>+</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-
-                {filteredFoods.length === 0 && (
-                  <View style={s.empty}>
-                    <Text style={s.emptyTxt}>
-                      {searchQuery || activeCategory
-                        ? 'No dishes match your search 🍽'
-                        : 'No dishes available in the kitchen 🍽'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Near You restaurants list (Only visible when not searching or filtering) */}
-              {!searchQuery && !activeCategory && (
-                <>
-                  <View style={s.sectionHeader}>
-                    <Text style={s.sectionTitle}>Near you</Text>
-                    <Text style={s.seeAll}>Online Kitchens</Text>
-                  </View>
-
-                  <FlatList
-                    data={RESTAURANTS}
-                    keyExtractor={i => i.id}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={s.restList}
-                    renderItem={({ item }) => (
-                      <View style={s.rcard}>
-                        <View style={s.rcardThumb}>
-                          <Text style={s.rcardEmoji}>{item.emoji}</Text>
-                        </View>
-                        <View style={s.rcardInfo}>
-                          <Text style={s.rcardName} numberOfLines={1}>{item.name}</Text>
-                          <Text style={s.rcardType}>{item.type}</Text>
-                          <View style={s.rcardMeta}>
-                            <Text style={s.rcardStar}>★ {item.rating}</Text>
-                            <View style={s.rcardDot} />
-                            <Text style={s.rcardTime}>{item.time}</Text>
-                            {item.freeDelivery && (
-                              <View style={s.freeBadge}>
-                                <Text style={s.freeTxt}>Free</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      </View>
-                    )}
-                  />
-                </>
-              )}
-            </>
+            <CustomerHomeScreen
+              menuItems={menuItems}
+              cart={cart}
+              liked={liked}
+              detectedLocation={detectedLocation}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+              filteredFoods={filteredFoods}
+              getCartQty={getCartQty}
+              handleAddToCart={handleAddToCart}
+              handleUpdateQty={handleUpdateQty}
+              toggleLike={toggleLike}
+              setLocationState={setLocationState}
+              setActiveNav={setActiveNav}
+              cartCount={cartCount}
+              navigation={navigation}
+            />
           )}
 
-          {/* ───────────────── FAVORITES TAB ───────────────── */}
           {activeNav === 'fav' && (
-            <View style={s.tabWrapper}>
-              <Text style={s.tabTitle}>My Favorites</Text>
-              <Text style={s.tabSub}>Loved food collections</Text>
-
-              <View style={s.foodGrid}>
-                {menuItems.filter(f => liked[f.id]).map(item => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[s.fcard, { width: CARD_W }]}
-                    activeOpacity={0.9}
-                    onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-                  >
-                    <View style={s.fcardImg}>
-                      <Image source={getDishImage(item.name)} style={s.fcardImage} />
-                      <TouchableOpacity style={s.likeBtn} onPress={() => toggleLike(item.id)}>
-                        <Text style={s.likeTxt}>❤️</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View style={s.fcardBody}>
-                      <Text style={s.fcardName} numberOfLines={1}>{item.name}</Text>
-                      <View style={s.fcardFoot}>
-                        <Text style={s.fcardPrice}>₹{item.price}</Text>
-                        <TouchableOpacity style={s.addBtn} onPress={() => handleAddToCart(item)}>
-                          <Text style={s.addBtnTxt}>+</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-                {menuItems.filter(f => liked[f.id]).length === 0 && (
-                  <View style={s.empty}>
-                    <Text style={s.emptyTxt}>Liked items will appear here ❤️</Text>
-                  </View>
-                )}
-              </View>
-            </View>
+            <CustomerFavoritesScreen
+              menuItems={menuItems}
+              liked={liked}
+              toggleLike={toggleLike}
+              handleAddToCart={handleAddToCart}
+              navigation={navigation}
+            />
           )}
 
-          {/* ───────────────── ORDERS TAB ───────────────── */}
-          {activeNav === 'orders' && (
-            <View style={s.tabWrapper}>
-              <Text style={s.tabTitle}>Order Status</Text>
-              <Text style={s.tabSub}>Track preparation details</Text>
-
-              {orders.length === 0 ? (
-                <View style={s.empty}>
-                  <Text style={s.emptyTxt}>No active orders placed 📋</Text>
-                </View>
-              ) : (
-                orders.map(order => (
-                  <View key={order.id} style={s.orderHistoryCard}>
-                    <View style={s.orderHistoryHeader}>
-                      <Text style={s.orderHistoryId}>Order #{order.id?.slice(-6)}</Text>
-                      <View style={[s.statusBadge, { backgroundColor: STATUS_COLORS[order.status] || '#555' }]}>
-                        <Text style={s.statusBadgeText}>{order.status?.toUpperCase()}</Text>
-                      </View>
-                    </View>
-
-                    {order.items && (
-                      <Text style={s.orderHistoryItems}>
-                        🛍️ {JSON.parse(typeof order.items === 'string' ? order.items : JSON.stringify(order.items))
-                          .map((i: any) => `${i.name} x${i.quantity}`).join(', ')}
-                      </Text>
-                    )}
-
-                    {order.addresses && (
-                      <Text style={s.orderHistoryAddr}>
-                        📍 Delivery: {order.addresses.receiver_name} - {order.addresses.address_line1}, {order.addresses.city}
-                      </Text>
-                    )}
-
-                    <View style={s.orderHistoryBottom}>
-                      <Text style={s.orderHistoryTotal}>Total Paid: ₹{order.total}</Text>
-                      {order.status !== 'delivered' && order.status !== 'cancelled' && (
-                        <TouchableOpacity
-                          style={s.cancelOrderBtn}
-                          onPress={() => handleCancelOrder(order.id)}
-                        >
-                          <Text style={s.cancelOrderBtnTxt}>Cancel</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
-          )}
-
-          {/* ───────────────── CART TAB ───────────────── */}
           {activeNav === 'cart' && (
-            <View style={s.tabWrapper}>
-              <Text style={s.tabTitle}>Shopping Cart</Text>
-              <Text style={s.tabSub}>{cart.length} items in your order</Text>
-
-              {cart.length === 0 ? (
-                <View style={s.empty}>
-                  <Text style={{ fontSize: 60, marginBottom: 12 }}>🛒</Text>
-                  <Text style={s.emptyTxt}>Your cart is empty.</Text>
-                  <TouchableOpacity style={s.exploreBtn} onPress={() => setActiveNav('home')}>
-                    <Text style={s.exploreBtnText}>Explore Menu</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                  <View style={s.cartItemsContainer}>
-                    {cart.map(item => (
-                      <View key={item.id} style={s.cartPremiumCard}>
-                        <View style={s.cartPremiumImageContainer}>
-                          <Image source={getDishImage(item.name)} style={s.cartPremiumImage} resizeMode="contain" />
-                        </View>
-
-                        <View style={s.cartPremiumDetails}>
-                          <View style={s.cartPremiumHeaderRow}>
-                            <Text style={s.cartPremiumName} numberOfLines={1}>{item.name}</Text>
-                            <TouchableOpacity onPress={() => handleRemoveItem(item.cart_item_id)}>
-                              <Text style={s.cartRemoveIcon}>✕</Text>
-                            </TouchableOpacity>
-                          </View>
-                          <Text style={s.cartPremiumPrice}>₹{item.price}</Text>
-
-                          <View style={s.cartPremiumQtyRow}>
-                            <TouchableOpacity
-                              style={s.cartQtyActionBtn}
-                              onPress={() => handleUpdateQty(item.cart_item_id, item.quantity, false)}
-                            >
-                              <Text style={s.cartQtyActionBtnText}>−</Text>
-                            </TouchableOpacity>
-                            <Text style={s.cartQtyLabel}>{item.quantity}</Text>
-                            <TouchableOpacity
-                              style={[s.cartQtyActionBtn, { backgroundColor: '#CCFF00' }]}
-                              onPress={() => handleUpdateQty(item.cart_item_id, item.quantity, true)}
-                            >
-                              <Text style={[s.cartQtyActionBtnText, { color: '#111' }]}>+</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Recommended Add-ons Section */}
-                  {recommendedItems.length > 0 && (
-                    <View style={{ marginVertical: 16 }}>
-                      <Text style={[s.checkoutSectionTitle, { paddingHorizontal: 16, marginBottom: 10 }]}>
-                        Complete Your Meal 😋
-                      </Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-                        {recommendedItems.map(item => (
-                          <View
-                            key={item.id}
-                            style={{
-                              width: 140,
-                              backgroundColor: '#fff',
-                              borderRadius: 16,
-                              padding: 10,
-                              borderWidth: 1,
-                              borderColor: '#F0F0F5',
-                              elevation: 1,
-                            }}
-                          >
-                            <Image
-                              source={getDishImage(item.name)}
-                              style={{ width: '100%', height: 70, resizeMode: 'contain', marginBottom: 6 }}
-                            />
-                            <Text style={{ fontSize: 13, fontWeight: '700', color: T.text }} numberOfLines={1}>
-                              {item.name}
-                            </Text>
-                            <Text style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>
-                              {item.category || 'Add-on'}
-                            </Text>
-                            
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                              <Text style={{ fontSize: 13, fontWeight: '800', color: T.text }}>
-                                ₹{item.price}
-                              </Text>
-                              <TouchableOpacity
-                                onPress={() => handleAddToCart(item)}
-                                style={{
-                                  backgroundColor: '#CCFF00',
-                                  borderRadius: 8,
-                                  paddingHorizontal: 8,
-                                  paddingVertical: 4,
-                                }}
-                              >
-                                <Text style={{ fontSize: 11, fontWeight: '800', color: '#111' }}>+ ADD</Text>
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
-
-                  {/* Promo Code Section */}
-                  <View style={s.promoSection}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text style={s.checkoutSectionTitle}>Promo Code</Text>
-                      <TouchableOpacity onPress={() => { fetchCouponsForUser(); setCouponsModalVisible(true); }}>
-                        <Text style={{ fontSize: 12, color: T.accent, fontWeight: '700', textDecorationLine: 'underline' }}>
-                          View All Coupons
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View style={s.promoInputRow}>
-                      <TextInput
-                        style={s.promoInput}
-                        placeholder="Enter promo code (e.g. SAVE15)"
-                        value={promoCode}
-                        onChangeText={setPromoCode}
-                        placeholderTextColor="#999"
-                      />
-                      <TouchableOpacity style={s.promoApplyBtn} onPress={handleApplyPromo}>
-                        <Text style={s.promoApplyBtnTxt}>Apply</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {/* Delivery Location Carousels */}
-                  <View style={s.checkoutSection}>
-                    <Text style={s.checkoutSectionTitle}>Delivery Address</Text>
-                    {addresses.length === 0 ? (
-                      <TouchableOpacity
-                        style={s.checkoutAddAddr}
-                        onPress={() => {
-                          setActiveNav('profile');
-                          setAddressModalVisible(true);
-                        }}
-                      >
-                        <Text style={s.checkoutAddAddrText}>➕ Add Delivery Address</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8, paddingHorizontal: 4 }}>
-                        {addresses.map(addr => (
-                          <TouchableOpacity
-                            key={addr.id}
-                            style={[
-                              s.checkoutAddrCard,
-                              selectedAddressId === addr.id && s.checkoutAddrCardActive,
-                            ]}
-                            onPress={() => setSelectedAddressId(addr.id)}
-                            activeOpacity={0.8}
-                          >
-                            <View style={s.checkoutAddrIconWrapper}>
-                              <Text style={s.checkoutAddrIcon}>📍</Text>
-                            </View>
-                            <View>
-                              <Text style={[s.checkoutAddrName, selectedAddressId === addr.id && { color: '#000' }]}>
-                                {addr.receiver_name}
-                              </Text>
-                              <Text style={s.checkoutAddrText}>{addr.address_line1}, {addr.city}</Text>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    )}
-                  </View>
-
-                  {/* Billing Card Details */}
-                  <View style={s.billingCard}>
-                    <Text style={s.checkoutSectionTitle}>Payment Summary</Text>
-                    <View style={s.billingRow}>
-                      <Text style={s.billingLabel}>Subtotal</Text>
-                      <Text style={s.billingVal}>₹{subtotal.toFixed(2)}</Text>
-                    </View>
-                    <View style={s.billingRow}>
-                      <Text style={s.billingLabel}>Delivery Fee</Text>
-                      <Text style={s.billingVal}>₹0.00</Text>
-                    </View>
-                    {discount > 0 && (
-                      <View style={s.billingRow}>
-                        <Text style={[s.billingLabel, { color: '#00C853' }]}>Discount</Text>
-                        <Text style={[s.billingVal, { color: '#00C853' }]}>- ₹{discount.toFixed(2)}</Text>
-                      </View>
-                    )}
-                    <View style={[s.billingRow, { borderTopWidth: 1, borderColor: '#F0F0F5', paddingTop: 16, marginTop: 12 }]}>
-                      <Text style={s.billingTotalLabel}>Total Amount</Text>
-                      <Text style={s.billingTotalVal}>₹{cartTotal.toFixed(2)}</Text>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    style={s.premiumCheckoutBtn}
-                    onPress={handleCheckout}
-                    disabled={placingOrder}
-                    activeOpacity={0.8}
-                  >
-                    {placingOrder ? (
-                      <ActivityIndicator color="#000" />
-                    ) : (
-                      <Text style={s.premiumCheckoutBtnTxt}>Checkout • ₹{cartTotal.toFixed(2)}</Text>
-                    )}
-                  </TouchableOpacity>
-                </ScrollView>
-              )}
-            </View>
+            <CustomerCartScreen
+              cart={cart}
+              recommendedItems={recommendedItems}
+              promoCode={promoCode}
+              setPromoCode={setPromoCode}
+              discount={discount}
+              addresses={addresses}
+              selectedAddressId={selectedAddressId}
+              setSelectedAddressId={setSelectedAddressId}
+              subtotal={subtotal}
+              cartTotal={cartTotal}
+              placingOrder={placingOrder}
+              handleRemoveItem={handleRemoveItem}
+              handleUpdateQty={handleUpdateQty}
+              handleAddToCart={handleAddToCart}
+              handleApplyPromo={handleApplyPromo}
+              handleCheckout={handleCheckout}
+              setAddressModalVisible={setAddressModalVisible}
+              fetchCouponsForUser={fetchCouponsForUser}
+              setCouponsModalVisible={setCouponsModalVisible}
+              setActiveNav={setActiveNav}
+            />
           )}
 
-          {/* ───────────────── PROFILE TAB ───────────────── */}
           {activeNav === 'profile' && (
-            <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-              {/* Premium Header */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 }}>
-                  <Text style={{ fontSize: 18 }}>👤</Text>
-                </TouchableOpacity>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#111' }}>Profile</Text>
-                <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 }}>
-                  <Text style={{ fontSize: 18 }}>🔔</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* User Profile Card */}
-              <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
-                  {/* Avatar */}
-                  <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: '#FFF4F1', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FFE4DE' }}>
-                    <Text style={{ fontSize: 32 }}>👩‍💻</Text>
-                  </View>
-                  {/* Name and Default Address */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '800', color: '#111' }} numberOfLines={1}>
-                      {addresses.find(a => a.is_default)?.receiver_name || currentUser?.email?.split('@')[0] || 'Customer User'}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
-                      <Text style={{ fontSize: 12, color: '#9CA3AF' }}>📍</Text>
-                      <Text style={{ fontSize: 12, color: '#9CA3AF', flex: 1 }} numberOfLines={1}>
-                        {(() => {
-                          const defAddr = addresses.find(a => a.is_default) || addresses[0];
-                          return defAddr 
-                            ? `${defAddr.address_line1}, ${defAddr.city}` 
-                            : 'No address added yet';
-                        })()}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                {/* Pencil Edit Icon */}
-                <TouchableOpacity 
-                  onPress={() => setAddressModalVisible(true)}
-                  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center' }}
-                >
-                  <Text style={{ fontSize: 16 }}>✏️</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Settings Section 1 */}
-              <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, marginBottom: 18, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Settings</Text>
-                
-                {/* Rewards */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#F9FAFB' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFBEB', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>🏆</Text>
-                    </View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Rewards</Text>
-                  </View>
-                  <Text style={{ fontSize: 13, color: '#9CA3AF', fontWeight: '500' }}>0 points</Text>
-                </View>
-
-                {/* Your orders */}
-                <TouchableOpacity 
-                  onPress={() => navigation.navigate('OrdersHistory', { userId: currentUser?.id })}
-                  activeOpacity={0.7}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#F9FAFB' }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EEF2F6', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>📋</Text>
-                    </View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Your orders</Text>
-                  </View>
-                  <Text style={{ fontSize: 16, color: '#9CA3AF', fontWeight: '700' }}>›</Text>
-                </TouchableOpacity>
-
-                {/* Cravk pay */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#F9FAFB' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>💳</Text>
-                    </View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Cravk pay</Text>
-                  </View>
-                  <Text style={{ fontSize: 13, color: '#9CA3AF', fontWeight: '500' }}>₹0.00</Text>
-                </View>
-
-                {/* Vouchers */}
-                <TouchableOpacity
-                  onPress={() => { fetchCouponsForUser(); setCouponsModalVisible(true); }}
-                  activeOpacity={0.7}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#F9FAFB' }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFF1F2', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>🏷️</Text>
-                    </View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Vouchers</Text>
-                  </View>
-                  <Text style={{ fontSize: 16, color: '#9CA3AF', fontWeight: '700' }}>›</Text>
-                </TouchableOpacity>
-
-                {/* Cravk pro */}
-                <TouchableOpacity
-                  onPress={() => Alert.alert('⚡ Cravk Pro', 'Cravk Pro subscription is coming soon! Enjoy free deliveries.')}
-                  activeOpacity={0.7}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F5F3FF', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>👑</Text>
-                    </View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Cravk pro</Text>
-                  </View>
-                  <Text style={{ fontSize: 16, color: '#9CA3AF', fontWeight: '700' }}>›</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Settings Section 2 */}
-              <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, marginBottom: 18, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Settings</Text>
-                
-                {/* Get help */}
-                <TouchableOpacity
-                  onPress={() => Alert.alert('💬 Support', 'Need help? Contact support at support@cravk.com')}
-                  activeOpacity={0.7}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#F9FAFB' }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>❓</Text>
-                    </View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Get help</Text>
-                  </View>
-                  <Text style={{ fontSize: 16, color: '#9CA3AF', fontWeight: '700' }}>›</Text>
-                </TouchableOpacity>
-
-                {/* About app */}
-                <TouchableOpacity
-                  onPress={() => Alert.alert('ℹ️ About App', 'Cravk Food Delivery App v1.0.0\nBuilt with ❤️ using React Native & Supabase.')}
-                  activeOpacity={0.7}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16 }}>ℹ</Text>
-                    </View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>About app</Text>
-                  </View>
-                  <Text style={{ fontSize: 16, color: '#9CA3AF', fontWeight: '700' }}>›</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Delivery Addresses manage row (Integrated address manage feature) */}
-              <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(
-                    'Addresses Manage',
-                    `You have ${addresses.length} addresses. Click to add a new address.`,
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Add New', onPress: () => setAddressModalVisible(true) }
-                    ]
-                  );
-                }}
-                activeOpacity={0.8}
-                style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 16 }}>🏠</Text>
-                  </View>
-                  <View>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#111' }}>Delivery Addresses</Text>
-                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>{addresses.length} addresses configured</Text>
-                  </View>
-                </View>
-                <Text style={{ fontSize: 16, color: '#9CA3AF', fontWeight: '700' }}>›</Text>
-              </TouchableOpacity>
-
-              {/* Log out */}
-              <TouchableOpacity
-                onPress={handleLogout}
-                activeOpacity={0.8}
-                style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 }}
-              >
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16 }}>🚪</Text>
-                </View>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#EF4444' }}>Log out</Text>
-              </TouchableOpacity>
-            </View>
+            <CustomerProfileScreen
+              currentUser={currentUser}
+              addresses={addresses}
+              setAddressModalVisible={setAddressModalVisible}
+              fetchCouponsForUser={fetchCouponsForUser}
+              setCouponsModalVisible={setCouponsModalVisible}
+              handleLogout={handleLogout}
+              navigation={navigation}
+            />
           )}
 
           <View style={{ height: 40 }} />
@@ -2068,7 +1451,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
                 <TouchableOpacity
                   onPress={() => {
                     setConfirmationModalVisible(false);
-                    setActiveNav('orders');
+                    navigation.navigate('OrdersHistory', { userId: currentUser?.id });
                   }}
                   style={{
                     backgroundColor: '#CCFF00',
