@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,11 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
-  Animated,
   Dimensions,
   Platform,
   StatusBar,
-  Modal,
 } from 'react-native';
-import { getMenuItem, getMenu, addToCart } from '../lib/api';
+import { getMenuItem, getMenu, getCart, addToCart } from '../lib/api';
 import { supabase } from '../lib/supabase';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -42,39 +40,23 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [addingToCart, setAddingToCart] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
   const [selectedSize, setSelectedSize] = useState(1); // default Medium
-  const [extrasModalVisible, setExtrasModalVisible] = useState(false);
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
-
-  // Button animation values
-  const btnWidth = useRef(new Animated.Value(1)).current;       // scale X for "shrink to circle"
-  const checkOpacity = useRef(new Animated.Value(0)).current;
-  const cartIconTranslate = useRef(new Animated.Value(0)).current;
-  const cartTextOpacity = useRef(new Animated.Value(1)).current;
-  const checkScale = useRef(new Animated.Value(0.4)).current;
-  const btnBgAnim = useRef(new Animated.Value(0)).current;      // 0=orange 1=dark
-
-  // Toast
-  const toastAnim = useRef(new Animated.Value(-120)).current;
-  const [toastMsg, setToastMsg] = useState('');
-  const [toastVisible, setToastVisible] = useState(false);
-
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setToastVisible(true);
-    Animated.sequence([
-      Animated.spring(toastAnim, { toValue: 60, useNativeDriver: true, speed: 14, bounciness: 8 }),
-      Animated.delay(2000),
-      Animated.timing(toastAnim, { toValue: -120, duration: 280, useNativeDriver: true }),
-    ]).start(() => setToastVisible(false));
-  };
+  const [cartCount, setCartCount] = useState(0);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+        if (user) {
+          const cartData = await getCart(user.id);
+          const totalQty = cartData.reduce((sum: number, cItem: any) => sum + cItem.quantity, 0);
+          setCartCount(totalQty);
+        }
         const data = await getMenuItem(itemId);
         setItem(data);
         const allItems = await getMenu();
@@ -88,81 +70,10 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     init();
   }, [itemId]);
 
-  const runAddToCartAnimation = () => {
-    // Step 1: Slide cart icon left & fade text out
-    Animated.parallel([
-      Animated.timing(cartIconTranslate, { toValue: -30, duration: 220, useNativeDriver: true }),
-      Animated.timing(cartTextOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
-    ]).start(() => {
-      // Step 2: Fade in the checkmark
-      Animated.parallel([
-        Animated.spring(checkScale, { toValue: 1, speed: 18, bounciness: 10, useNativeDriver: true }),
-        Animated.timing(checkOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.timing(btnBgAnim, { toValue: 1, duration: 250, useNativeDriver: false }),
-      ]).start(() => {
-        setAddedToCart(true);
-        // Step 3: After a beat, reverse back to normal
-        setTimeout(() => {
-          Animated.parallel([
-            Animated.timing(checkOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
-            Animated.spring(checkScale, { toValue: 0.4, speed: 18, bounciness: 4, useNativeDriver: true }),
-            Animated.timing(btnBgAnim, { toValue: 0, duration: 250, useNativeDriver: false }),
-          ]).start(() => {
-            Animated.parallel([
-              Animated.timing(cartIconTranslate, { toValue: 0, duration: 220, useNativeDriver: true }),
-              Animated.timing(cartTextOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
-            ]).start(() => setAddedToCart(false));
-          });
-        }, 1400);
-      });
-    });
-  };
-
-  const handleConfirmAddToCart = async (extrasToAdd: any[] = []) => {
-    setExtrasModalVisible(false);
-    setAddingToCart(true);
-    runAddToCartAnimation();
-
-    try {
-      await addToCart(currentUser.id, item.id, 1);
-      for (const extra of extrasToAdd) {
-        await addToCart(currentUser.id, extra.id, 1);
-      }
-      showToast(extrasToAdd.length > 0 
-        ? `✅ Item & ${extrasToAdd.length} extra(s) added!` 
-        : 'Item added to cart!'
-      );
-    } catch (e: any) {
-      showToast(e.message || 'Could not add to cart');
-    }
-    setAddingToCart(false);
-    setSelectedExtras([]);
-  };
-
-  const handleAddToCart = async () => {
-    if (!currentUser) {
-      Alert.alert('Login Required', 'Please log in to add items to your cart.');
-      return;
-    }
-    if (addingToCart || addedToCart) return;
-
-    const recs = getRecommendedExtras();
-    if (recs.length > 0) {
-      setExtrasModalVisible(true);
-    } else {
-      await handleConfirmAddToCart([]);
-    }
-  };
-
-  const bgColor = btnBgAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#FF6B35', '#1A1A1A'],
-  });
-
   const sizePrice = (basePrice: any) => {
     const parsedBase = typeof basePrice === 'string' ? parseFloat(basePrice) : (basePrice || 0);
     const offset = SIZE_OPTIONS[selectedSize].price;
-    return (parsedBase + offset).toFixed(2);
+    return parsedBase + offset;
   };
 
   const isPizza = item?.name?.toLowerCase().includes('pizza');
@@ -188,6 +99,49 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     });
   };
 
+  const getCurrentTotal = () => {
+    if (!item) return 0;
+    const base = isPizza ? sizePrice(item.price) : parseFloat(item.price);
+    const extrasTotal = getRecommendedExtras()
+      .filter(e => selectedExtras.includes(e.id))
+      .reduce((sum, e) => sum + parseFloat(e.price), 0);
+    return (base * quantity) + extrasTotal;
+  };
+
+  const handleConfirmAddToCart = async () => {
+    if (!currentUser || !item) return;
+    setAddingToCart(true);
+
+    try {
+      // 1. Add primary item in chosen quantity
+      await addToCart(currentUser.id, item.id, quantity);
+      
+      // 2. Add each selected extra in quantity 1
+      const extrasToAdd = getRecommendedExtras().filter(e => selectedExtras.includes(e.id));
+      for (const extra of extrasToAdd) {
+        await addToCart(currentUser.id, extra.id, 1);
+      }
+
+      // 3. Update dynamic cart badge count
+      const cartData = await getCart(currentUser.id);
+      const totalQty = cartData.reduce((sum: number, cItem: any) => sum + cItem.quantity, 0);
+      setCartCount(totalQty);
+
+      Alert.alert(
+        '🎉 Added to Cart',
+        `${item.name} x${quantity}${extrasToAdd.length > 0 ? ` & ${extrasToAdd.length} extra(s)` : ''} successfully added!`,
+        [{ text: 'Great!' }]
+      );
+      
+      // Reset choices
+      setSelectedExtras([]);
+      setQuantity(1);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not add items to cart.');
+    }
+    setAddingToCart(false);
+  };
+
   if (loading || !item) {
     return (
       <View style={s.loadingContainer}>
@@ -196,375 +150,201 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     );
   }
 
+  // Description truncation helper
+  const desc = item.description || `${item.name} is a delicious classic topped with golden melted cheese and rich flavor. Made fresh daily with the finest ingredients for your perfect meal.`;
+  const truncatedDesc = desc.slice(0, 110);
+  const showReadMore = desc.length > 110;
+
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      {/* ── Toast ── */}
-      {toastVisible && (
-        <Animated.View style={[s.toast, { transform: [{ translateY: toastAnim }] }]}>
-          <Text style={s.toastText}>{toastMsg}</Text>
-        </Animated.View>
-      )}
+      {/* ── HEADER NAVIGATION ── */}
+      <SafeAreaView style={s.headerSafeArea}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.circleBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <Text style={s.circleBtnTxt}>←</Text>
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>Details</Text>
+          <TouchableOpacity style={s.circleBtn} activeOpacity={0.8} onPress={() => navigation.navigate('CartTab')}>
+            <Text style={s.circleBtnTxt}>🛒</Text>
+            {cartCount > 0 && (
+              <View style={s.badge}>
+                <Text style={s.badgeText}>{cartCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
 
-      {/* ── HERO IMAGE ── */}
+      {/* ── FLOATING HERO IMAGE ── */}
       <View style={s.heroContainer}>
         <Image
           source={getDishImage(item.name)}
           style={s.heroImage}
-          resizeMode="cover"
+          resizeMode="contain"
         />
-        {/* gradient overlay */}
-        <View style={s.heroGradient} />
-
-        {/* Header on top of image */}
-        <SafeAreaView style={s.headerSafeArea}>
-          <View style={s.header}>
-            <TouchableOpacity style={s.iconBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-              <Text style={s.iconTxt}>←</Text>
-            </TouchableOpacity>
-            <Text style={s.headerTitle}>Details</Text>
-            <TouchableOpacity style={s.iconBtn} activeOpacity={0.8}>
-              <Text style={s.iconTxtMore}>•••</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
       </View>
 
-      {/* ── WHITE CARD ── */}
+      {/* ── WHITE DETAILS CARD ── */}
       <View style={s.card}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.scrollContent}
           bounces={false}
         >
-          {/* Brand logo + name row */}
-          <View style={s.namePriceRow}>
-            <View style={s.nameGroup}>
-              {/* Brand icon placeholder */}
-              <View style={s.brandBadge}>
-                <Text style={s.brandBadgeTxt}>🍕</Text>
-              </View>
-              <View>
-                <Text style={s.itemName}>{item.name}</Text>
-                <Text style={s.brandName}>Pizza Hut</Text>
-              </View>
-            </View>
-            {/* Favorite heart */}
-            <TouchableOpacity style={s.heartBtn} activeOpacity={0.7}>
-              <Text style={s.heartIcon}>♡</Text>
+          {/* Item Title & Favorite Heart */}
+          <View style={s.titleRow}>
+            <Text style={s.itemName} numberOfLines={1}>{item.name}</Text>
+            <TouchableOpacity 
+              style={s.heartBtn} 
+              activeOpacity={0.8}
+              onPress={() => setIsFavorite(prev => !prev)}
+            >
+              <Text style={[s.heartIcon, isFavorite && s.heartIconActive]}>
+                {isFavorite ? '♥' : '♡'}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Rating + Price */}
-          <View style={s.ratingPriceRow}>
-            <View style={s.ratingGroup}>
-              <Text style={s.star}>★</Text>
-              <Text style={s.ratingVal}>4.9</Text>
-              <Text style={s.ratingCount}>(1.2k)</Text>
-            </View>
-            <Text style={s.price}>₹{isPizza ? sizePrice(item.price) : parseFloat(item.price).toFixed(2)}</Text>
-          </View>
+          {/* Pricing Info */}
+          <Text style={s.priceRow}>
+            From: <Text style={s.priceValue}>₹{isPizza ? sizePrice(item.price).toFixed(2) : parseFloat(item.price).toFixed(2)}</Text>
+          </Text>
 
-          {/* Size selector */}
+          {/* Expandable Description */}
+          <Text style={s.description}>
+            {isDescriptionExpanded ? desc : truncatedDesc}
+            {showReadMore && (
+              <Text 
+                onPress={() => setIsDescriptionExpanded(prev => !prev)} 
+                style={s.readMoreBtn}
+              >
+                {isDescriptionExpanded ? '  Read Less' : '... Read More'}
+              </Text>
+            )}
+          </Text>
+
+          {/* Pizza size selector conditional */}
           {isPizza && (
-            <View style={s.sizeRow}>
-              {SIZE_OPTIONS.map((opt, idx) => {
-                const selected = selectedSize === idx;
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[s.sizePill, selected && s.sizePillSelected]}
-                    onPress={() => setSelectedSize(idx)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={[s.sizePillPrice, selected && s.sizePillPriceSelected]}>
-                      ₹{(parseFloat(item.price) + opt.price).toFixed(2)}
-                    </Text>
-                    <Text style={[s.sizePillLabel, selected && s.sizePillLabelSelected]}>
-                      {opt.size} - {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={{ marginTop: 22 }}>
+              <Text style={s.sectionTitle}>Select Size</Text>
+              <View style={s.sizeRow}>
+                {SIZE_OPTIONS.map((opt, idx) => {
+                  const selected = selectedSize === idx;
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[s.sizePill, selected && s.sizePillSelected]}
+                      onPress={() => setSelectedSize(idx)}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[s.sizePillPrice, selected && s.sizePillPriceSelected]}>
+                        ₹{(parseFloat(item.price) + opt.price).toFixed(0)}
+                      </Text>
+                      <Text style={[s.sizePillLabel, selected && s.sizePillLabelSelected]}>
+                        {opt.size} - {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           )}
 
-          {/* Details section */}
-          <Text style={s.sectionTitle}>Details</Text>
-          <Text style={s.description}>
-            {item.description
-              ? item.description
-              : `${item.name} is a delicious classic topped with golden melted cheese and rich flavor. Made fresh daily with the finest ingredients for your perfect meal.`}
-          </Text>
-        </ScrollView>
-
-        {/* ── Add to Cart button ── */}
-        <View style={s.bottomBar}>
-          <TouchableOpacity
-            onPress={handleAddToCart}
-            activeOpacity={0.92}
-            disabled={addingToCart || addedToCart}
-            style={s.cartBtnWrapper}
-          >
-            <Animated.View style={[s.cartBtn, { backgroundColor: bgColor }]}>
-              {/* Cart icon circle (left side) */}
-              <Animated.View style={[s.cartIconCircle, { transform: [{ translateX: cartIconTranslate }] }]}>
-                {/* Cart SVG-like icon using text */}
-                <Text style={s.cartIcon}>🛒</Text>
-              </Animated.View>
-
-              {/* "Add to Cart" text */}
-              <Animated.Text style={[s.cartBtnText, { opacity: cartTextOpacity }]}>
-                Add to Cart
-              </Animated.Text>
-
-              {/* Checkmark (appears on success) */}
-              <Animated.View style={[
-                s.checkmarkWrap,
-                { opacity: checkOpacity, transform: [{ scale: checkScale }] }
-              ]}>
-                <Text style={s.checkmark}>✓</Text>
-              </Animated.View>
-
-              {/* Arrow icon (right side) */}
-              <Animated.View style={[s.arrowCircle, { opacity: cartTextOpacity }]}>
-                <Text style={s.arrowIcon}>→</Text>
-              </Animated.View>
-            </Animated.View>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Recommended Extras Modal */}
-      <Modal
-        visible={extrasModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setExtrasModalVisible(false)}
-      >
-        <View style={s.modalOverlay}>
-          <View style={[s.modalContainer, { maxHeight: '80%' }]}>
-            {/* Pull handle bar */}
-            <View style={{
-              width: 42,
-              height: 5,
-              borderRadius: 3,
-              backgroundColor: '#E2E8F0',
-              alignSelf: 'center',
-              marginTop: 10,
-              marginBottom: 2,
-            }} />
-
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>🎉 Complete Your Meal</Text>
-              <TouchableOpacity onPress={() => setExtrasModalVisible(false)}>
-                <Text style={s.closeModalText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ backgroundColor: '#F8FAFC' }} contentContainerStyle={{ padding: 20 }}>
-              <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 16, fontWeight: '500' }}>
-                Would you like to add some delicious sides or beverages to accompany your <Text style={{ fontWeight: '700', color: '#1A1A1A' }}>{item.name}</Text>?
-              </Text>
-
-              {getRecommendedExtras().map((extra) => {
-                const isSelected = selectedExtras.includes(extra.id);
-                return (
-                  <TouchableOpacity
-                    key={extra.id}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      setSelectedExtras(prev => 
-                        isSelected ? prev.filter(id => id !== extra.id) : [...prev, extra.id]
-                      );
-                    }}
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: 16,
-                      padding: 14,
-                      marginBottom: 12,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? '#FF6B35' : '#E2E8F0',
-                      ...Platform.select({
-                        ios: {
-                          shadowColor: '#000',
-                          shadowOpacity: 0.03,
-                          shadowRadius: 6,
-                          shadowOffset: { width: 0, height: 2 },
-                        },
-                        android: { elevation: 2 },
-                      }),
-                    }}
-                  >
-                    {/* Emoji / Icon Container */}
-                    <View style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      backgroundColor: '#FFF3EE',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      marginRight: 14,
-                    }}>
-                      <Text style={{ fontSize: 24 }}>
-                        {extra.name.toLowerCase().includes('naan') ? '🫓' :
-                         extra.name.toLowerCase().includes('fries') ? '🍟' :
-                         extra.name.toLowerCase().includes('coffee') ? '🥤' :
-                         extra.name.toLowerCase().includes('brownie') ? '🍰' : '😋'}
+          {/* Horizontal Add-ons list */}
+          {getRecommendedExtras().length > 0 && (
+            <View style={{ marginTop: 22 }}>
+              <Text style={s.sectionTitle}>Add Extra Additional</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.extrasScroll}
+              >
+                {getRecommendedExtras().map((extra) => {
+                  const isSelected = selectedExtras.includes(extra.id);
+                  return (
+                    <TouchableOpacity
+                      key={extra.id}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setSelectedExtras(prev => 
+                          isSelected ? prev.filter(id => id !== extra.id) : [...prev, extra.id]
+                        );
+                      }}
+                      style={[s.extraCard, isSelected && s.extraCardSelected]}
+                    >
+                      <Text style={[s.extraPrice, isSelected && s.extraPriceSelected]}>
+                        +₹{parseFloat(extra.price).toFixed(0)}
                       </Text>
-                    </View>
-
-                    {/* Extra Details */}
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14.5, fontWeight: '700', color: '#1A1A1A' }}>
+                      <Text style={[s.extraName, isSelected && s.extraNameSelected]} numberOfLines={1}>
                         {extra.name}
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, fontWeight: '500' }}>
-                        {extra.category || 'Add-on'}
-                      </Text>
-                    </View>
-
-                    {/* Price & Selection Checkbox */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: isSelected ? '#FF6B35' : '#4B5563' }}>
-                        + ₹{parseFloat(extra.price).toFixed(0)}
-                      </Text>
-                      
-                      <View style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 11,
-                        borderWidth: 2,
-                        borderColor: isSelected ? '#FF6B35' : '#CBD5E1',
-                        backgroundColor: isSelected ? '#FF6B35' : 'transparent',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}>
-                        {isSelected && (
-                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>✓</Text>
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* Footer Actions */}
-            <View style={{
-              padding: 20,
-              borderTopWidth: 1,
-              borderColor: '#F0F0F5',
-              backgroundColor: '#FFFFFF',
-            }}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => {
-                  const extrasToAdd = getRecommendedExtras().filter(e => selectedExtras.includes(e.id));
-                  handleConfirmAddToCart(extrasToAdd);
-                }}
-                style={{
-                  backgroundColor: '#FF6B35',
-                  borderRadius: 16,
-                  paddingVertical: 15,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 10,
-                }}
-              >
-                <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15.5 }}>
-                  {selectedExtras.length > 0 
-                    ? `Add Selected Extras & Continue (+₹${getRecommendedExtras()
-                        .filter(e => selectedExtras.includes(e.id))
-                        .reduce((sum, e) => sum + parseFloat(e.price), 0)
-                        .toFixed(0)})` 
-                    : 'Continue With Item Only'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => handleConfirmAddToCart([])}
-                style={{
-                  paddingVertical: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ color: '#64748B', fontWeight: '700', fontSize: 14 }}>
-                  Skip & Continue Without Extras
-                </Text>
-              </TouchableOpacity>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
-          </View>
+          )}
+        </ScrollView>
+      </View>
+
+      {/* ── BOTTOM ACTION BAR ── */}
+      <View style={s.bottomBar}>
+        {/* Quantity controller pill */}
+        <View style={s.qtyPill}>
+          <TouchableOpacity 
+            style={s.qtyBtn} 
+            activeOpacity={0.75}
+            onPress={() => setQuantity(q => Math.max(1, q - 1))}
+          >
+            <Text style={s.qtyBtnText}>−</Text>
+          </TouchableOpacity>
+          <Text style={s.qtyText}>{quantity < 10 ? `0${quantity}` : quantity}</Text>
+          <TouchableOpacity 
+            style={[s.qtyBtn, s.qtyBtnPlus]} 
+            activeOpacity={0.75}
+            onPress={() => setQuantity(q => q + 1)}
+          >
+            <Text style={[s.qtyBtnText, { color: '#FFFFFF' }]}>+</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        {/* Primary Checkout Button */}
+        <TouchableOpacity
+          style={s.nextBtn}
+          activeOpacity={0.88}
+          disabled={addingToCart}
+          onPress={handleConfirmAddToCart}
+        >
+          {addingToCart ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={s.nextBtnTxt}>Next - ₹{getCurrentTotal().toFixed(0)}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
-const CARD_BORDER = 32;
-const HERO_HEIGHT = SCREEN_H * 0.46;
+const CARD_BORDER = 36;
 
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F7F4F0',
+    backgroundColor: '#FAF9F6',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#F7F4F0',
+    backgroundColor: '#FAF9F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  // ── Toast ──
-  toast: {
-    position: 'absolute',
-    top: 0,
-    left: 20,
-    right: 20,
-    zIndex: 999,
-    backgroundColor: '#1C1C2E',
-    paddingVertical: 14,
-    paddingHorizontal: 22,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 20,
-  },
-  toastText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  // ── Hero ──
-  heroContainer: {
-    width: SCREEN_W,
-    height: HERO_HEIGHT,
-    position: 'relative',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heroGradient: {
-    ...StyleSheet.absoluteFillObject,
-    // simulated gradient: transparent top → dark bottom
-    backgroundColor: 'transparent',
-  },
+  // ── Header ──
   headerSafeArea: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    backgroundColor: 'transparent',
     zIndex: 10,
   },
   header: {
@@ -572,155 +352,164 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 8 : 12,
-    paddingBottom: 8,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 12 : 12,
+    paddingBottom: 10,
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+  circleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 3 },
+    }),
   },
-  iconTxt: {
+  circleBtnTxt: {
     fontSize: 18,
-    color: '#FFF',
+    color: '#1A1A1A',
     fontWeight: '600',
-  },
-  iconTxtMore: {
-    fontSize: 11,
-    color: '#FFF',
-    fontWeight: '700',
-    letterSpacing: 1,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1A1A1A',
     letterSpacing: 0.2,
   },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
 
-  // ── Card ──
+  // ── Floating Hero image ──
+  heroContainer: {
+    width: SCREEN_W,
+    height: SCREEN_H * 0.32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    zIndex: 1,
+  },
+  heroImage: {
+    width: '72%',
+    height: '100%',
+  },
+
+  // ── Details Card ──
   card: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: CARD_BORDER,
     borderTopRightRadius: CARD_BORDER,
-    marginTop: -CARD_BORDER,
-    paddingTop: 24,
-    paddingHorizontal: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 8,
+    paddingTop: 28,
+    paddingHorizontal: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -6 },
+        shadowOpacity: 0.04,
+        shadowRadius: 16,
+      },
+      android: { elevation: 8 },
+    }),
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
 
-  // ── Name / Price ──
-  namePriceRow: {
+  // ── Name & Price Row ──
+  titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
   },
-  nameGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  brandBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FFF3EE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 4,
-    shadowColor: '#FF6B35',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  brandBadgeTxt: {
-    fontSize: 22,
-  },
   itemName: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
     color: '#1A1A1A',
+    flex: 1,
+    marginRight: 10,
     letterSpacing: -0.3,
   },
-  brandName: {
-    fontSize: 13,
-    color: '#999',
-    fontWeight: '500',
-    marginTop: 1,
-  },
   heartBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F5F5F5',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F5F5F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   heartIcon: {
-    fontSize: 18,
-    color: '#333',
-  },
-
-  // ── Rating + Price ──
-  ratingPriceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 22,
-  },
-  ratingGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  star: {
-    fontSize: 15,
-    color: '#FFC107',
-  },
-  ratingVal: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 20,
     color: '#1A1A1A',
+    marginTop: 1,
   },
-  ratingCount: {
-    fontSize: 14,
-    color: '#AAAAAA',
+  heartIconActive: {
+    color: '#EF4444',
+  },
+  priceRow: {
+    fontSize: 14.5,
+    color: '#9CA3AF',
     fontWeight: '500',
+    marginBottom: 16,
   },
-  price: {
-    fontSize: 22,
+  priceValue: {
+    fontSize: 15.5,
     fontWeight: '800',
     color: '#1A1A1A',
   },
 
-  // ── Size Selector ──
+  // ── Description ──
+  description: {
+    fontSize: 13.5,
+    color: '#6B7280',
+    lineHeight: 22,
+  },
+  readMoreBtn: {
+    color: '#1A1A1A',
+    fontWeight: '800',
+  },
+
+  // ── Sizing selector ──
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    letterSpacing: -0.1,
+  },
   sizeRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 26,
   },
   sizePill: {
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F5F5F7',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
@@ -748,89 +537,129 @@ const s = StyleSheet.create({
     color: '#FF6B35',
   },
 
-  // ── Description ──
-  sectionTitle: {
-    fontSize: 17,
+  // ── Horizontal Extras Addons ──
+  extrasScroll: {
+    gap: 12,
+    paddingBottom: 6,
+  },
+  extraCard: {
+    width: 106,
+    borderRadius: 18,
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.02,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 1 },
+    }),
+  },
+  extraCardSelected: {
+    backgroundColor: '#FFF3EE',
+    borderColor: '#FF6B35',
+  },
+  extraPrice: {
+    fontSize: 14.5,
     fontWeight: '800',
     color: '#1A1A1A',
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  description: {
-    fontSize: 14,
-    color: '#777',
-    lineHeight: 22,
+  extraPriceSelected: {
+    color: '#FF6B35',
+  },
+  extraName: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  extraNameSelected: {
+    color: '#FF6B35',
+    fontWeight: '600',
   },
 
   // ── Bottom Bar ──
   bottomBar: {
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 20,
-  },
-  cartBtnWrapper: {
-    borderRadius: 50,
-    overflow: 'hidden',
-  },
-  cartBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    height: 60,
-    borderRadius: 50,
-    paddingHorizontal: 10,
-    shadowColor: '#FF6B35',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.38,
-    shadowRadius: 16,
-    elevation: 10,
-    position: 'relative',
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 18,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderColor: '#F3F4F6',
+    gap: 14,
   },
-  cartIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+  qtyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 30,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    gap: 12,
+  },
+  qtyBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    left: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 1 },
+      },
+      android: { elevation: 1 },
+    }),
   },
-  cartIcon: {
-    fontSize: 20,
+  qtyBtnPlus: {
+    backgroundColor: '#1C1C2E',
   },
-  cartBtnText: {
-    fontSize: 17,
+  qtyBtnText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    lineHeight: 22,
+  },
+  qtyText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    minWidth: 22,
+    textAlign: 'center',
+  },
+  nextBtn: {
+    flex: 1,
+    height: 52,
+    backgroundColor: '#1C1C2E',
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 3 },
+    }),
+  },
+  nextBtnTxt: {
+    fontSize: 15.5,
     fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 0.3,
   },
-  checkmarkWrap: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkmark: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  arrowCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    right: 8,
-  },
-  arrowIcon: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContainer: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderColor: '#F0F0F5' },
-  modalTitle: { fontSize: 17, fontWeight: '900', color: '#1a1a1a' },
-  closeModalText: { fontSize: 18, color: '#9CA3AF', fontWeight: 'bold' },
 });
