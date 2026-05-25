@@ -8,8 +8,8 @@ import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { clearSession } from '../utils/session';
 
-// Direct localhost since EXPO_PUBLIC vars are not available on Expo Web bundle
-const BACKEND = 'http://localhost:3000';
+// Direct Vercel URL since EXPO_PUBLIC vars are not available on Expo Web bundle
+const BACKEND = 'https://food-delivery-app-beta-wheat.vercel.app';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#F59E0B',
@@ -658,7 +658,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
             {/* Render the interactive Leaflet Map Picker on web natively */}
             {Platform.OS === 'web' ? (
               <iframe
-                src="http://localhost:3000/map-picker.html"
+                src="https://food-delivery-app-beta-wheat.vercel.app/map-picker.html"
                 style={{
                   width: '100%',
                   height: 520,

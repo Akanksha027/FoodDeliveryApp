@@ -21,7 +21,7 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const getDishImage = (name: string) => {
   const n = name.toLowerCase();
   if (n.includes('burger')) return require('../../assets/burger.png');
-  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/PIZZA.png');
+  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.jpg');
   if (n.includes('fries') || n.includes('french')) return require('../../assets/fries.png');
   if (n.includes('coffee') || n.includes('drink') || n.includes('tea') || n.includes('shake') || n.includes('smoothie')) return require('../../assets/drinks.png');
   return require('../../assets/burger.png'); // default fallback

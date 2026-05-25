@@ -2,9 +2,8 @@
 // Central API helper — all frontend → backend calls go through here
 
 // On native (iOS/Android), always use the full backend URL.
-// On web, the browser needs a full absolute URL too since Expo
-// Metro web server doesn't proxy by default.
-const BACKEND = 'http://localhost:3000';
+// On web, the browser needs a full absolute URL// Use the deployed Vercel URL
+const BACKEND = 'https://food-delivery-app-beta-wheat.vercel.app';
 
 const defaultHeaders = {
   'Content-Type': 'application/json',

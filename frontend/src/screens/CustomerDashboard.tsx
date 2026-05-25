@@ -90,7 +90,7 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
 
 const CATEGORIES = [
   { id: 'burger', label: 'Burger', image: require('../../assets/burger.png') },
-  { id: 'pizza', label: 'Pizza', image: require('../../assets/PIZZA.png') },
+  { id: 'pizza', label: 'Pizza', image: require('../../assets/pizza.jpg') },
   { id: 'fries', label: 'Fries', image: require('../../assets/fries.png') },
   { id: 'drink', label: 'Drink', image: require('../../assets/drinks.png') },
 ];
@@ -130,7 +130,7 @@ const shadow = (elevation = 4) =>
 const getDishImage = (name: string) => {
   const n = name.toLowerCase();
   if (n.includes('burger')) return require('../../assets/burger.png');
-  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/PIZZA.png');
+  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.jpg');
   if (n.includes('fries') || n.includes('french')) return require('../../assets/fries.png');
   if (n.includes('coffee') || n.includes('drink') || n.includes('tea') || n.includes('shake') || n.includes('smoothie')) return require('../../assets/drinks.png');
   return require('../../assets/burger.png'); // default fallback
@@ -193,7 +193,7 @@ const FoodCard = ({ item, cartQty, cartItem, onAddToCart, onUpdateQty, isLiked, 
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={s.addBtn} activeOpacity={0.85} onPress={() => onAddToCart(item)}>
+          <TouchableOpacity style={s.addBtnCard} activeOpacity={0.85} onPress={() => onAddToCart(item)}>
             <Text style={s.addBtnText}>Add to Cart</Text>
           </TouchableOpacity>
         )}
@@ -274,8 +274,9 @@ export const CustomerDashboard = ({ navigation }: any) => {
 
   const fetchActiveKitchen = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/kitchen', {
-        headers: { 'ngrok-skip-browser-warning': 'true' }
+      const res = await fetch('https://food-delivery-app-beta-wheat.vercel.app/api/kitchen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
       });
       if (res.ok) {
         const data = await res.json();
@@ -864,7 +865,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
                 onPress={handleDetectGPS}
                 activeOpacity={0.8}
               >
-                <Text style={{ color: '#111', fontWeight: '850', fontSize: 16 }}>
+                <Text style={{ color: '#111', fontWeight: '800', fontSize: 16 }}>
                   📍 Share Current Location (GPS)
                 </Text>
               </TouchableOpacity>
@@ -907,7 +908,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
               <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>
                 Detected Location
               </Text>
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '750', marginBottom: 10 }}>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 10 }}>
                 📍 {detectedLocation.address}
               </Text>
               <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 10 }} />
@@ -994,7 +995,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
                 onPress={handleManualSearch}
                 activeOpacity={0.8}
               >
-                <Text style={{ color: '#111', fontWeight: '850', fontSize: 16 }}>
+                <Text style={{ color: '#111', fontWeight: '800', fontSize: 16 }}>
                   🔍 Search & Validate Address
                 </Text>
               </TouchableOpacity>
@@ -1394,7 +1395,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
                             </Text>
                             
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                              <Text style={{ fontSize: 13, fontWeight: '850', color: T.text }}>
+                              <Text style={{ fontSize: 13, fontWeight: '800', color: T.text }}>
                                 ₹{item.price}
                               </Text>
                               <TouchableOpacity
@@ -1989,7 +1990,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
                     borderColor: '#111'
                   }}
                 >
-                  <Text style={{ color: '#111', fontWeight: '850', fontSize: 15 }}>
+                  <Text style={{ color: '#111', fontWeight: '800', fontSize: 15 }}>
                     🛵 Track Active Orders
                   </Text>
                 </TouchableOpacity>
@@ -2081,7 +2082,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
                           {parsedItems.map((item: any, idx: number) => (
                             <View key={idx} style={s.myOrdersFullItemRow}>
                               <Text style={s.myOrdersFullItemName}>
-                                • {item.name} <Text style={{ color: T.sub, fontWeight: '750' }}>x{item.quantity}</Text>
+                                • {item.name} <Text style={{ color: T.sub, fontWeight: '700' }}>x{item.quantity}</Text>
                               </Text>
                               <Text style={s.myOrdersFullItemPrice}>
                                 ₹{(parseFloat(item.price) * item.quantity).toFixed(2)}
@@ -2103,7 +2104,7 @@ export const CustomerDashboard = ({ navigation }: any) => {
                             </View>
                           )}
                           <View style={s.myOrdersFullPriceRow}>
-                            <Text style={{ fontSize: 13, color: T.text, fontWeight: '750' }}>Total Paid:</Text>
+                            <Text style={{ fontSize: 13, color: T.text, fontWeight: '700' }}>Total Paid:</Text>
                             <Text style={{ fontSize: 14, color: T.accent, fontWeight: '900' }}>
                               ₹{parseFloat(order.total).toFixed(2)}
                             </Text>
@@ -2372,7 +2373,7 @@ const s = StyleSheet.create({
   orderHistoryBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   orderHistoryTotal: { fontWeight: '800', fontSize: 14, color: T.accent },
   cancelOrderBtn: { backgroundColor: T.accentBg, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
-  cancelOrderBtnTxt: { color: T.accent, fontWeight: '850', fontSize: 11 },
+  cancelOrderBtnTxt: { color: T.accent, fontWeight: '800', fontSize: 11 },
 
   // Cart Tab Premium
   exploreBtn: { backgroundColor: T.accent, borderRadius: 20, paddingHorizontal: 22, paddingVertical: 10, marginTop: 16 },
@@ -2437,7 +2438,7 @@ const s = StyleSheet.create({
     ...shadow(2),
   },
   checkoutAddrCardActive: { borderColor: T.accent, backgroundColor: T.accentBg },
-  checkoutAddrName: { color: T.text, fontWeight: '850', fontSize: 13, marginBottom: 4 },
+  checkoutAddrName: { color: T.text, fontWeight: '800', fontSize: 13, marginBottom: 4 },
   checkoutAddrText: { color: T.sub, fontSize: 11 },
 
   billingCard: { backgroundColor: T.surface, borderRadius: 18, padding: 16, marginTop: 16, ...shadow(3) },
@@ -2445,7 +2446,7 @@ const s = StyleSheet.create({
   billingLabel: { color: T.sub, fontSize: 13 },
   billingVal: { color: T.text, fontWeight: '700', fontSize: 13 },
   billingTotalLabel: { color: T.text, fontSize: 15, fontWeight: '800' },
-  billingTotalVal: { color: T.accent, fontWeight: '950', fontSize: 16 },
+  billingTotalVal: { color: T.accent, fontWeight: '900', fontSize: 16 },
 
   cartActionRow: { gap: 10, marginTop: 20 },
   checkoutBtn: { backgroundColor: T.accent, borderRadius: 16, padding: 16, alignItems: 'center' },
@@ -2737,7 +2738,7 @@ const s = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  addBtn: {
+  addBtnCard: {
     backgroundColor: '#FF6B35',
     borderRadius: 30,
     paddingHorizontal: 14,
@@ -2841,7 +2842,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   myOrdersFullCode: {
-    fontWeight: '850',
+    fontWeight: '800',
     fontSize: 13,
     color: T.text,
   },
