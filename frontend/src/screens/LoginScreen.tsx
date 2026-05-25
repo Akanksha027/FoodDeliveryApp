@@ -8,7 +8,7 @@ import { storeSession } from '../utils/session';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const ADMIN_EMAIL = 'akankshasingh0085@gmail.com';
+const ADMIN_EMAIL = 'admin_override@gmail.com'; // Changed so your real email acts as a Customer!
 
 export const LoginScreen = ({ navigation }: any) => {
   const navigated = useRef(false); // prevent double navigation on re-render
