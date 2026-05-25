@@ -257,15 +257,15 @@ const styles = StyleSheet.create({
   },
   welcomeTitle: {
     fontFamily: 'Poppins_900Black',
-    fontSize: 42,
+    fontSize: 52,
     color: '#FFFFFF',
     textAlign: 'center',
     letterSpacing: -1.8,
-    lineHeight: 48,
+    lineHeight: 52,
   },
   welcomeTitleAccent: {
     fontFamily: 'Poppins_900Black',
-    fontSize: 44,
+    fontSize: 52,
     color: '#FFFFFF',
     textAlign: 'center',
     letterSpacing: -1.8,
