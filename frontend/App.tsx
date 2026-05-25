@@ -7,6 +7,7 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { OwnerDashboard } from './src/screens/OwnerDashboard';
 import { CustomerDashboard } from './src/screens/CustomerDashboard';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
+import { OrdersHistoryScreen } from './src/screens/OrdersHistoryScreen';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 
@@ -15,6 +16,7 @@ export type RootStackParamList = {
   OwnerDashboard: undefined;
   CustomerDashboard: undefined;
   ItemDetail: { itemId: string };
+  OrdersHistory: { userId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -27,6 +29,7 @@ export default function App() {
         <Stack.Screen name="OwnerDashboard" component={OwnerDashboard} />
         <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
         <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+        <Stack.Screen name="OrdersHistory" component={OrdersHistoryScreen} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>
