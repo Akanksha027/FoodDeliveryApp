@@ -82,7 +82,7 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     if (!item || menuItems.length === 0) return [];
     const category = item.category?.toLowerCase() || '';
     const name = item.name?.toLowerCase() || '';
-    
+
     let targets: string[] = [];
     if (category.includes('burger') || name.includes('burger') || category.includes('pizza') || name.includes('pizza')) {
       targets = ['fries', 'coffee', 'brownie'];
@@ -115,7 +115,7 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     try {
       // 1. Add primary item in chosen quantity
       await addToCart(currentUser.id, item.id, quantity);
-      
+
       // 2. Add each selected extra in quantity 1
       const extrasToAdd = getRecommendedExtras().filter(e => selectedExtras.includes(e.id));
       for (const extra of extrasToAdd) {
@@ -132,7 +132,7 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
         `${item.name} x${quantity}${extrasToAdd.length > 0 ? ` & ${extrasToAdd.length} extra(s)` : ''} successfully added!`,
         [{ text: 'Great!' }]
       );
-      
+
       // Reset choices
       setSelectedExtras([]);
       setQuantity(1);
@@ -196,8 +196,8 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
           {/* Item Title & Favorite Heart */}
           <View style={s.titleRow}>
             <Text style={s.itemName} numberOfLines={1}>{item.name}</Text>
-            <TouchableOpacity 
-              style={s.heartBtn} 
+            <TouchableOpacity
+              style={s.heartBtn}
               activeOpacity={0.8}
               onPress={() => setIsFavorite(prev => !prev)}
             >
@@ -216,8 +216,8 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
           <Text style={s.description}>
             {isDescriptionExpanded ? desc : truncatedDesc}
             {showReadMore && (
-              <Text 
-                onPress={() => setIsDescriptionExpanded(prev => !prev)} 
+              <Text
+                onPress={() => setIsDescriptionExpanded(prev => !prev)}
                 style={s.readMoreBtn}
               >
                 {isDescriptionExpanded ? '  Read Less' : '... Read More'}
@@ -268,7 +268,7 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
                       key={extra.id}
                       activeOpacity={0.8}
                       onPress={() => {
-                        setSelectedExtras(prev => 
+                        setSelectedExtras(prev =>
                           isSelected ? prev.filter(id => id !== extra.id) : [...prev, extra.id]
                         );
                       }}
@@ -293,16 +293,16 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
       <View style={s.bottomBar}>
         {/* Quantity controller pill */}
         <View style={s.qtyPill}>
-          <TouchableOpacity 
-            style={s.qtyBtn} 
+          <TouchableOpacity
+            style={s.qtyBtn}
             activeOpacity={0.75}
             onPress={() => setQuantity(q => Math.max(1, q - 1))}
           >
             <Text style={s.qtyBtnText}>−</Text>
           </TouchableOpacity>
           <Text style={s.qtyText}>{quantity < 10 ? `0${quantity}` : quantity}</Text>
-          <TouchableOpacity 
-            style={[s.qtyBtn, s.qtyBtnPlus]} 
+          <TouchableOpacity
+            style={[s.qtyBtn, s.qtyBtnPlus]}
             activeOpacity={0.75}
             onPress={() => setQuantity(q => q + 1)}
           >

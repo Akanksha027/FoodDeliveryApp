@@ -6,12 +6,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   Alert,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getMyOrders, cancelOrder } from '../lib/api';
 
 const T = {
@@ -98,7 +98,7 @@ export const OrdersHistoryScreen = ({ route, navigation }: any) => {
   const displayedOrders = activeTab === 'active' ? activeOrders : pastOrders;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header */}
