@@ -8,7 +8,7 @@ import { storeSession } from '../utils/session';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const ADMIN_EMAIL = 'admin_override@gmail.com'; // Changed so your real email acts as a Customer!
+const ADMIN_EMAIL = 'akankshasingh0085@gmail.com';
 
 export const LoginScreen = ({ navigation }: any) => {
   const navigated = useRef(false); // prevent double navigation on re-render
@@ -61,8 +61,10 @@ export const LoginScreen = ({ navigation }: any) => {
         if (error) throw error;
 
         if (data?.url) {
+          console.log('[Auth] Opening Supabase OAuth URL:', data.url);
           // Open the browser with the OAuth session
           const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+          console.log('[Auth] WebBrowser session result:', result);
 
           if (result.type === 'success' && result.url) {
             console.log('[Auth] Browser redirect captured URL:', result.url);

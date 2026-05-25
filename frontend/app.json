@@ -2,17 +2,21 @@
   "expo": {
     "name": "frontend",
     "slug": "frontend",
-    "scheme": "fooddeliveryapp",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "fooddelivery",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "extra": {
       "supabaseUrl": "https://uelxwqpvjdrkxsgotoia.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdXBhYmFzZSI6InJlYW5lciIsImFjY291bnQiOiJwZW9wbGUiLCJ1c2VyX2lkIjoiMTIzNDU2IiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MzEzMTAwMDB9.abc123def456ghi789jkl0"
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdXBhYmFzZSI6InJlYW5lciIsImFjY291bnQiOiJwZW9wbGUiLCJ1c2VyX2lkIjoiMTIzNDU2IiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MzEzMTAwMDB9.abc123def456ghi789jkl0",
+      "eas": {
+        "projectId": "f2499797-024c-42da-97c8-f7243b15a0d2"
+      }
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.akankshasingh.frontend"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +24,8 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.akanksha_singh.frontend"
     },
     "web": {
       "favicon": "./assets/favicon.png"
