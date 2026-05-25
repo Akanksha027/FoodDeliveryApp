@@ -207,8 +207,15 @@ const FoodCard = ({ item, cartQty, cartItem, onAddToCart, onUpdateQty, isLiked, 
   );
 };
 
-export const CustomerDashboard = ({ navigation }: any) => {
+export const CustomerDashboard = ({ navigation, route }: any) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (route.params?.tab) {
+      setActiveNav(route.params.tab);
+      navigation.setParams({ tab: undefined });
+    }
+  }, [route.params?.tab]);
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);

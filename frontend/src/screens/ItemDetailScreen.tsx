@@ -166,7 +166,7 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
             <Text style={s.circleBtnTxt}>←</Text>
           </TouchableOpacity>
           <Text style={s.headerTitle}>Details</Text>
-          <TouchableOpacity style={s.circleBtn} activeOpacity={0.8} onPress={() => navigation.navigate('CartTab')}>
+          <TouchableOpacity style={s.circleBtn} activeOpacity={0.8} onPress={() => navigation.navigate('CustomerDashboard', { tab: 'cart' })}>
             <Text style={s.circleBtnTxt}>🛒</Text>
             {cartCount > 0 && (
               <View style={s.badge}>
@@ -320,7 +320,7 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
           {addingToCart ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={s.nextBtnTxt}>Next - ₹{getCurrentTotal().toFixed(0)}</Text>
+            <Text style={s.nextBtnTxt}>Add to Cart - ₹{getCurrentTotal().toFixed(0)}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -419,7 +419,7 @@ const s = StyleSheet.create({
   // ── Details Card ──
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF4F1',
     borderTopLeftRadius: CARD_BORDER,
     borderTopRightRadius: CARD_BORDER,
     paddingTop: 28,
@@ -509,13 +509,13 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 16,
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   sizePillSelected: {
-    backgroundColor: '#FFF3EE',
+    backgroundColor: '#FFF4F1',
     borderColor: '#FF6B35',
   },
   sizePillPrice: {
@@ -547,7 +547,7 @@ const s = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
@@ -563,7 +563,7 @@ const s = StyleSheet.create({
     }),
   },
   extraCardSelected: {
-    backgroundColor: '#FFF3EE',
+    backgroundColor: '#FFF4F1',
     borderColor: '#FF6B35',
   },
   extraPrice: {
@@ -625,7 +625,7 @@ const s = StyleSheet.create({
     }),
   },
   qtyBtnPlus: {
-    backgroundColor: '#1C1C2E',
+    backgroundColor: '#FF6B35',
   },
   qtyBtnText: {
     fontSize: 18,
@@ -643,7 +643,7 @@ const s = StyleSheet.create({
   nextBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#1C1C2E',
+    backgroundColor: '#FF6B35',
     borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',

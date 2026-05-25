@@ -89,17 +89,8 @@ const FoodCard = ({ item, cartQty, cartItem, onAddToCart, onUpdateQty, isLiked, 
     <View style={[s.card, { width: cardWidth }]}>
       {/* Card background - dark left section */}
       <View style={s.cardLeft}>
-        {/* Time badge */}
-        <View style={s.timeBadge}>
-          <Text style={s.timeBadgeIcon}>⏱</Text>
-          <Text style={s.timeBadgeText}>22 mins</Text>
-        </View>
 
-        {/* Free delivery badge */}
-        <View style={s.deliveryBadge}>
-          <Text style={s.deliveryBadgeIcon}>🚚</Text>
-          <Text style={s.deliveryBadgeText}>Free Delivery</Text>
-        </View>
+
 
         {/* Name and price */}
         <View style={s.cardContent}>
@@ -133,10 +124,7 @@ const FoodCard = ({ item, cartQty, cartItem, onAddToCart, onUpdateQty, isLiked, 
       {/* Food image - overlapping right side */}
       <View style={s.cardImageContainer}>
         <Image source={getDishImage(item.name)} style={s.cardImage} />
-        {/* Weight badge */}
-        <View style={s.weightBadge}>
-          <Text style={s.weightText}>320g</Text>
-        </View>
+
         {/* Heart button */}
         <TouchableOpacity
           style={[s.heartBtn, isLiked && s.heartBtnActive]}
@@ -148,9 +136,7 @@ const FoodCard = ({ item, cartQty, cartItem, onAddToCart, onUpdateQty, isLiked, 
       </View>
 
       {/* Rating top right */}
-      <View style={s.ratingBadgeCard}>
-        <Text style={s.ratingBadgeText}>35 mins</Text>
-      </View>
+
     </View>
   );
 };
@@ -364,49 +350,7 @@ export const CustomerHomeScreen = ({
         </View>
 
         {/* Near You / Big brands restaurant list */}
-        {!searchQuery && !activeCategory && (
-          <>
-            <View style={s.sectionHeader}>
-              <Text style={s.sectionTitle}>Big brands near you</Text>
-              <Text style={s.seeAll}>See all ›</Text>
-            </View>
 
-            <FlatList
-              data={RESTAURANTS}
-              keyExtractor={i => i.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.restList}
-              renderItem={({ item }) => (
-                <View style={s.rcard}>
-                  <View style={s.rcardThumb}>
-                    <Text style={s.rcardEmoji}>{item.emoji}</Text>
-                  </View>
-                  <View style={s.rcardInfo}>
-                    <View style={s.rcardTopRow}>
-                      <View style={[s.freshnessTag]}>
-                        <Text style={s.freshnessText}>Freshness guaranteed</Text>
-                      </View>
-                      <View style={s.rcardStarBadge}>
-                        <Text style={s.rcardStarBadgeText}>★ {item.rating}</Text>
-                      </View>
-                    </View>
-                    <Text style={s.rcardName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={s.rcardType}>{item.type}</Text>
-                    <View style={s.rcardMeta}>
-                      <Text style={s.rcardTime}>⏱ {item.time}</Text>
-                      {item.freeDelivery && (
-                        <View style={s.freeBadge}>
-                          <Text style={s.freeTxt}>Free</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              )}
-            />
-          </>
-        )}
 
         {/* Bottom padding for nav bar */}
         <View style={{ height: 24 }} />
