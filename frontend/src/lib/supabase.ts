@@ -1,5 +1,6 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const supabaseUrl = 'https://uelxwqpvjdrkxsgotoia.supabase.co';
 const supabaseAnonKey =
@@ -7,6 +8,9 @@ const supabaseAnonKey =
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
     // Required for web: automatically detects access_token from URL hash after Google OAuth redirect
     detectSessionInUrl: true,
     // Implicit flow for Expo Web — no PKCE code exchange needed
