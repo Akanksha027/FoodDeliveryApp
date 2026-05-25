@@ -87,9 +87,9 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) *
-      Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -187,7 +187,7 @@ const FoodCard = ({ item, cartQty, cartItem, onAddToCart, onUpdateQty, isLiked, 
       {/* Bottom strip */}
       <View style={s.cardBottom}>
         <Text style={s.cardName}>{item.name}</Text>
-        
+
         {cartQty > 0 ? (
           <View style={s.popularQtyControl}>
             <TouchableOpacity style={s.popularSmallBtn} onPress={() => onUpdateQty(cartItem?.cart_item_id, cartItem?.quantity, false)}>
@@ -233,7 +233,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
-  
+
   // Coupons modal states
   const [couponsModalVisible, setCouponsModalVisible] = useState(false);
   const [allCoupons, setAllCoupons] = useState<any[]>([]);
@@ -719,7 +719,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
       setPlacedOrder(newOrder);
       setCart([]); // Clear the user's cart
       setConfirmationModalVisible(true); // Open the Confirmation Bill modal overlay
-      
+
       // Quietly reload data to keep listings in sync
       await refreshData();
     } catch (e: any) {
@@ -1295,17 +1295,16 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                         disabled={!isEligible}
                         onPress={() => {
                           setPromoCode(coupon.code);
-                          setDiscount(coupon.discount_type === 'percentage' 
+                          setDiscount(coupon.discount_type === 'percentage'
                             ? parseFloat(((subtotal * parseFloat(coupon.discount_value)) / 100).toFixed(2))
                             : Math.min(parseFloat(coupon.discount_value), subtotal)
                           );
                           setCouponsModalVisible(false);
-                          Alert.alert('🎉 Promo Applied!', `You saved ₹${
-                            (coupon.discount_type === 'percentage' 
-                              ? (subtotal * parseFloat(coupon.discount_value)) / 100
-                              : Math.min(parseFloat(coupon.discount_value), subtotal)
-                            ).toFixed(2)
-                          } with code ${coupon.code}!`);
+                          Alert.alert('🎉 Promo Applied!', `You saved ₹${(coupon.discount_type === 'percentage'
+                            ? (subtotal * parseFloat(coupon.discount_value)) / 100
+                            : Math.min(parseFloat(coupon.discount_value), subtotal)
+                          ).toFixed(2)
+                            } with code ${coupon.code}!`);
                         }}
                         style={{
                           backgroundColor: '#FFFFFF',
@@ -1567,7 +1566,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                     <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark, marginBottom: 10 }}>
                       Final Bill Summary:
                     </Text>
-                    
+
                     {placedOrder.discount_amount > 0 && (
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 3 }}>
                         <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '600' }}>Applied Promo:</Text>
@@ -1681,14 +1680,14 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                     const parsedItems = JSON.parse(
                       typeof order.items === 'string' ? order.items : JSON.stringify(order.items || '[]')
                     );
-                    const formattedDate = order.created_at 
+                    const formattedDate = order.created_at
                       ? new Date(order.created_at).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                       : 'Recently placed';
 
                     return (
