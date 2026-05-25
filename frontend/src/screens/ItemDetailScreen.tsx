@@ -405,14 +405,14 @@ const s = StyleSheet.create({
   // ── Floating Hero image ──
   heroContainer: {
     width: SCREEN_W,
-    height: SCREEN_H * 0.32,
+    height: SCREEN_H * 0.38,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
     zIndex: 1,
   },
   heroImage: {
-    width: '72%',
+    width: '88%',
     height: '100%',
   },
 
@@ -543,10 +543,10 @@ const s = StyleSheet.create({
     paddingBottom: 6,
   },
   extraCard: {
-    width: 106,
+    width: 128,
     borderRadius: 18,
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
     backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
@@ -567,7 +567,7 @@ const s = StyleSheet.create({
     borderColor: '#FF6B35',
   },
   extraPrice: {
-    fontSize: 14.5,
+    fontSize: 16,
     fontWeight: '800',
     color: '#1A1A1A',
     marginBottom: 4,
@@ -576,7 +576,7 @@ const s = StyleSheet.create({
     color: '#FF6B35',
   },
   extraName: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#6B7280',
     fontWeight: '500',
     textAlign: 'center',
