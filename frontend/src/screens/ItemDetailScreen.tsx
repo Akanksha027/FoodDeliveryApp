@@ -13,8 +13,9 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  Modal,
 } from 'react-native';
-import { getMenuItem, addToCart } from '../lib/api';
+import { getMenuItem, getMenu, addToCart } from '../lib/api';
 import { supabase } from '../lib/supabase';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -37,11 +38,14 @@ const SIZE_OPTIONS = [
 export const ItemDetailScreen = ({ route, navigation }: any) => {
   const { itemId } = route.params;
   const [item, setItem] = useState<any>(null);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [selectedSize, setSelectedSize] = useState(1); // default Medium
+  const [extrasModalVisible, setExtrasModalVisible] = useState(false);
+  const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
 
   // Button animation values
   const btnWidth = useRef(new Animated.Value(1)).current;       // scale X for "shrink to circle"
@@ -73,6 +77,8 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
       try {
         const data = await getMenuItem(itemId);
         setItem(data);
+        const allItems = await getMenu();
+        setMenuItems(allItems || []);
       } catch (e: any) {
         Alert.alert('Error', 'Could not load item details.');
         navigation.goBack();
@@ -112,6 +118,27 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     });
   };
 
+  const handleConfirmAddToCart = async (extrasToAdd: any[] = []) => {
+    setExtrasModalVisible(false);
+    setAddingToCart(true);
+    runAddToCartAnimation();
+
+    try {
+      await addToCart(currentUser.id, item.id, 1);
+      for (const extra of extrasToAdd) {
+        await addToCart(currentUser.id, extra.id, 1);
+      }
+      showToast(extrasToAdd.length > 0 
+        ? `✅ Item & ${extrasToAdd.length} extra(s) added!` 
+        : 'Item added to cart!'
+      );
+    } catch (e: any) {
+      showToast(e.message || 'Could not add to cart');
+    }
+    setAddingToCart(false);
+    setSelectedExtras([]);
+  };
+
   const handleAddToCart = async () => {
     if (!currentUser) {
       Alert.alert('Login Required', 'Please log in to add items to your cart.');
@@ -119,16 +146,12 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     }
     if (addingToCart || addedToCart) return;
 
-    setAddingToCart(true);
-    runAddToCartAnimation();
-
-    try {
-      await addToCart(currentUser.id, item.id, 1);
-      showToast('Item added to cart!');
-    } catch (e: any) {
-      showToast(e.message || 'Could not add to cart');
+    const recs = getRecommendedExtras();
+    if (recs.length > 0) {
+      setExtrasModalVisible(true);
+    } else {
+      await handleConfirmAddToCart([]);
     }
-    setAddingToCart(false);
   };
 
   const bgColor = btnBgAnim.interpolate({
@@ -140,6 +163,29 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
     const parsedBase = typeof basePrice === 'string' ? parseFloat(basePrice) : (basePrice || 0);
     const offset = SIZE_OPTIONS[selectedSize].price;
     return (parsedBase + offset).toFixed(2);
+  };
+
+  const isPizza = item?.name?.toLowerCase().includes('pizza');
+
+  const getRecommendedExtras = () => {
+    if (!item || menuItems.length === 0) return [];
+    const category = item.category?.toLowerCase() || '';
+    const name = item.name?.toLowerCase() || '';
+    
+    let targets: string[] = [];
+    if (category.includes('burger') || name.includes('burger') || category.includes('pizza') || name.includes('pizza')) {
+      targets = ['fries', 'coffee', 'brownie'];
+    } else if (category.includes('main') || name.includes('paneer') || name.includes('dal')) {
+      targets = ['naan', 'coffee', 'brownie'];
+    } else {
+      targets = ['fries', 'coffee'];
+    }
+
+    return menuItems.filter(m => {
+      const mName = m.name.toLowerCase();
+      if (m.id === item.id) return false;
+      return targets.some(t => mName.includes(t));
+    });
   };
 
   if (loading || !item) {
@@ -217,30 +263,32 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
               <Text style={s.ratingVal}>4.9</Text>
               <Text style={s.ratingCount}>(1.2k)</Text>
             </View>
-            <Text style={s.price}>₹{sizePrice(item.price)}</Text>
+            <Text style={s.price}>₹{isPizza ? sizePrice(item.price) : parseFloat(item.price).toFixed(2)}</Text>
           </View>
 
           {/* Size selector */}
-          <View style={s.sizeRow}>
-            {SIZE_OPTIONS.map((opt, idx) => {
-              const selected = selectedSize === idx;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={[s.sizePill, selected && s.sizePillSelected]}
-                  onPress={() => setSelectedSize(idx)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={[s.sizePillPrice, selected && s.sizePillPriceSelected]}>
-                    ₹{(parseFloat(item.price) + opt.price).toFixed(2)}
-                  </Text>
-                  <Text style={[s.sizePillLabel, selected && s.sizePillLabelSelected]}>
-                    {opt.size} - {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {isPizza && (
+            <View style={s.sizeRow}>
+              {SIZE_OPTIONS.map((opt, idx) => {
+                const selected = selectedSize === idx;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[s.sizePill, selected && s.sizePillSelected]}
+                    onPress={() => setSelectedSize(idx)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[s.sizePillPrice, selected && s.sizePillPriceSelected]}>
+                      ₹{(parseFloat(item.price) + opt.price).toFixed(2)}
+                    </Text>
+                    <Text style={[s.sizePillLabel, selected && s.sizePillLabelSelected]}>
+                      {opt.size} - {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           {/* Details section */}
           <Text style={s.sectionTitle}>Details</Text>
@@ -287,6 +335,173 @@ export const ItemDetailScreen = ({ route, navigation }: any) => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Recommended Extras Modal */}
+      <Modal
+        visible={extrasModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setExtrasModalVisible(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={[s.modalContainer, { maxHeight: '80%' }]}>
+            {/* Pull handle bar */}
+            <View style={{
+              width: 42,
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: '#E2E8F0',
+              alignSelf: 'center',
+              marginTop: 10,
+              marginBottom: 2,
+            }} />
+
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>🎉 Complete Your Meal</Text>
+              <TouchableOpacity onPress={() => setExtrasModalVisible(false)}>
+                <Text style={s.closeModalText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ backgroundColor: '#F8FAFC' }} contentContainerStyle={{ padding: 20 }}>
+              <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 16, fontWeight: '500' }}>
+                Would you like to add some delicious sides or beverages to accompany your <Text style={{ fontWeight: '700', color: '#1A1A1A' }}>{item.name}</Text>?
+              </Text>
+
+              {getRecommendedExtras().map((extra) => {
+                const isSelected = selectedExtras.includes(extra.id);
+                return (
+                  <TouchableOpacity
+                    key={extra.id}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSelectedExtras(prev => 
+                        isSelected ? prev.filter(id => id !== extra.id) : [...prev, extra.id]
+                      );
+                    }}
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 16,
+                      padding: 14,
+                      marginBottom: 12,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderWidth: 1.5,
+                      borderColor: isSelected ? '#FF6B35' : '#E2E8F0',
+                      ...Platform.select({
+                        ios: {
+                          shadowColor: '#000',
+                          shadowOpacity: 0.03,
+                          shadowRadius: 6,
+                          shadowOffset: { width: 0, height: 2 },
+                        },
+                        android: { elevation: 2 },
+                      }),
+                    }}
+                  >
+                    {/* Emoji / Icon Container */}
+                    <View style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      backgroundColor: '#FFF3EE',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 14,
+                    }}>
+                      <Text style={{ fontSize: 24 }}>
+                        {extra.name.toLowerCase().includes('naan') ? '🫓' :
+                         extra.name.toLowerCase().includes('fries') ? '🍟' :
+                         extra.name.toLowerCase().includes('coffee') ? '🥤' :
+                         extra.name.toLowerCase().includes('brownie') ? '🍰' : '😋'}
+                      </Text>
+                    </View>
+
+                    {/* Extra Details */}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14.5, fontWeight: '700', color: '#1A1A1A' }}>
+                        {extra.name}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, fontWeight: '500' }}>
+                        {extra.category || 'Add-on'}
+                      </Text>
+                    </View>
+
+                    {/* Price & Selection Checkbox */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: isSelected ? '#FF6B35' : '#4B5563' }}>
+                        + ₹{parseFloat(extra.price).toFixed(0)}
+                      </Text>
+                      
+                      <View style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        borderWidth: 2,
+                        borderColor: isSelected ? '#FF6B35' : '#CBD5E1',
+                        backgroundColor: isSelected ? '#FF6B35' : 'transparent',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}>
+                        {isSelected && (
+                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>✓</Text>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Footer Actions */}
+            <View style={{
+              padding: 20,
+              borderTopWidth: 1,
+              borderColor: '#F0F0F5',
+              backgroundColor: '#FFFFFF',
+            }}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => {
+                  const extrasToAdd = getRecommendedExtras().filter(e => selectedExtras.includes(e.id));
+                  handleConfirmAddToCart(extrasToAdd);
+                }}
+                style={{
+                  backgroundColor: '#FF6B35',
+                  borderRadius: 16,
+                  paddingVertical: 15,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15.5 }}>
+                  {selectedExtras.length > 0 
+                    ? `Add Selected Extras & Continue (+₹${getRecommendedExtras()
+                        .filter(e => selectedExtras.includes(e.id))
+                        .reduce((sum, e) => sum + parseFloat(e.price), 0)
+                        .toFixed(0)})` 
+                    : 'Continue With Item Only'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => handleConfirmAddToCart([])}
+                style={{
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#64748B', fontWeight: '700', fontSize: 14 }}>
+                  Skip & Continue Without Extras
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -613,4 +828,9 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContainer: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderColor: '#F0F0F5' },
+  modalTitle: { fontSize: 17, fontWeight: '900', color: '#1a1a1a' },
+  closeModalText: { fontSize: 18, color: '#9CA3AF', fontWeight: 'bold' },
 });
