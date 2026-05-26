@@ -179,7 +179,12 @@ export const CustomerCartScreen = ({
             <View style={s.promoSection}>
               <View style={s.promoHeader}>
                 <Text style={s.promoHeaderTitle}>Promo Code</Text>
-                <TouchableOpacity onPress={() => { fetchCouponsForUser(); setCouponsModalVisible(true); }}>
+                <TouchableOpacity 
+                  onPress={() => { fetchCouponsForUser(); setCouponsModalVisible(true); }}
+                  style={s.viewAllBtn}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="pricetag-outline" size={13} color="#f49851" style={{ marginRight: 5 }} />
                   <Text style={s.viewAllLink}>View All Coupons</Text>
                 </TouchableOpacity>
               </View>
@@ -507,12 +512,22 @@ const s = StyleSheet.create({
     color: '#1E1209',
     fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
   },
+  viewAllBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#f49851',
+    borderRadius: 0,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   viewAllLink: {
-    fontSize: 12,
-    color: '#7A6A57',
-    fontWeight: '700',
-    textDecorationLine: 'none',
-    letterSpacing: 0.8,
+    fontSize: 11,
+    color: '#f49851',
+    fontWeight: '800',
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   promoBox: {

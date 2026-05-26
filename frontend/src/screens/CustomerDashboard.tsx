@@ -1448,13 +1448,13 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
         onRequestClose={() => setCouponsModalVisible(false)}
       >
         <View style={s.modalOverlay}>
-          <View style={[s.modalContainer, { maxHeight: '75%' }]}>
-            {/* Grab handle bar */}
+          <View style={[s.modalContainer, { maxHeight: '75%', borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+            {/* Minimal orange accent line */}
             <View style={{
               width: 42,
-              height: 5,
-              borderRadius: 3,
-              backgroundColor: '#E2E8F0',
+              height: 4,
+              borderRadius: 0,
+              backgroundColor: '#FF5A30',
               alignSelf: 'center',
               marginTop: 10,
               marginBottom: 2,
@@ -1498,17 +1498,17 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                         }}
                         style={{
                           backgroundColor: '#FFFFFF',
-                          borderRadius: 16,
+                          borderRadius: 0,
                           padding: 16,
                           marginBottom: 16,
                           borderWidth: 1.5,
-                          borderColor: isEligible ? T.accent : '#E2E8F0',
+                          borderColor: isEligible ? '#FF5A30' : '#E2E8F0',
                           position: 'relative',
                           overflow: 'hidden',
                           opacity: isEligible ? 1 : 0.8,
                           ...Platform.select({
                             ios: {
-                              shadowColor: isEligible ? T.accent : '#000',
+                              shadowColor: isEligible ? '#FF5A30' : '#000',
                               shadowOpacity: isEligible ? 0.08 : 0.04,
                               shadowRadius: 8,
                               shadowOffset: { width: 0, height: 4 },
@@ -1526,24 +1526,24 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                           top: 0,
                           bottom: 0,
                           width: 6,
-                          backgroundColor: isEligible ? T.accent : '#CBD5E1',
+                          backgroundColor: isEligible ? '#FF5A30' : '#CBD5E1',
                         }} />
 
                         {/* Top Row: Promo Code & Badges */}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 8 }}>
                           <View style={{
-                            backgroundColor: isEligible ? T.accentBg : '#F1F5F9',
+                            backgroundColor: isEligible ? '#FFF4F1' : '#F1F5F9',
                             borderWidth: 1,
-                            borderColor: isEligible ? '#FFD0C3' : '#E2E8F0',
+                            borderColor: isEligible ? '#FF5A30' : '#E2E8F0',
                             borderStyle: 'dashed',
                             paddingHorizontal: 12,
                             paddingVertical: 6,
-                            borderRadius: 8,
+                            borderRadius: 0,
                           }}>
                             <Text style={{
                               fontSize: 14,
                               fontWeight: '800',
-                              color: isEligible ? T.accent : '#64748B',
+                              color: isEligible ? '#FF5A30' : '#64748B',
                               letterSpacing: 1,
                             }}>
                               🎫 {coupon.code}
@@ -1552,13 +1552,13 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
                           {isEligible ? (
                             <View style={{
-                              backgroundColor: T.accent,
+                              backgroundColor: '#FF5A30',
                               paddingHorizontal: 12,
                               paddingVertical: 6,
-                              borderRadius: 20,
+                              borderRadius: 0,
                               ...Platform.select({
                                 ios: {
-                                  shadowColor: T.accent,
+                                  shadowColor: '#FF5A30',
                                   shadowOpacity: 0.25,
                                   shadowRadius: 4,
                                   shadowOffset: { width: 0, height: 2 },
@@ -1575,7 +1575,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                               backgroundColor: '#E2E8F0',
                               paddingHorizontal: 10,
                               paddingVertical: 6,
-                              borderRadius: 20,
+                              borderRadius: 0,
                               flexDirection: 'row',
                               alignItems: 'center',
                               gap: 4,
@@ -1599,7 +1599,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                             <Text style={{
                               fontSize: 13,
                               fontWeight: '800',
-                              color: isEligible ? T.accent : '#64748B',
+                              color: isEligible ? '#FF5A30' : '#64748B',
                               marginLeft: 6,
                             }}>
                               FLAT DISCOUNT
@@ -1617,7 +1617,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                             backgroundColor: '#FFF8F6',
                             borderWidth: 1,
                             borderColor: '#FFEAE5',
-                            borderRadius: 10,
+                            borderRadius: 0,
                             padding: 10,
                             marginTop: 12,
                             marginLeft: 8,
@@ -1626,37 +1626,11 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                             gap: 8,
                           }}>
                             <Text style={{ fontSize: 14 }}>💡</Text>
-                            <Text style={{ fontSize: 11, color: T.accent, fontWeight: '600', flex: 1, lineHeight: 15 }}>
+                            <Text style={{ fontSize: 11, color: '#FF5A30', fontWeight: '600', flex: 1, lineHeight: 15 }}>
                               Add <Text style={{ fontWeight: '800' }}>₹{(parseFloat(coupon.min_order_value) - subtotal).toFixed(0)}</Text> more to unlock this coupon!
                             </Text>
                           </View>
                         )}
-
-                        {/* Left & Right Physical Ticket Tear-off Cutouts */}
-                        <View style={{
-                          position: 'absolute',
-                          left: -8,
-                          top: '50%',
-                          marginTop: -8,
-                          width: 16,
-                          height: 16,
-                          borderRadius: 8,
-                          backgroundColor: '#F8FAFC', // Blends seamlessly with ScrollView background
-                          borderWidth: 1.5,
-                          borderColor: isEligible ? T.accent : '#E2E8F0',
-                        }} />
-                        <View style={{
-                          position: 'absolute',
-                          right: -8,
-                          top: '50%',
-                          marginTop: -8,
-                          width: 16,
-                          height: 16,
-                          borderRadius: 8,
-                          backgroundColor: '#F8FAFC',
-                          borderWidth: 1.5,
-                          borderColor: isEligible ? T.accent : '#E2E8F0',
-                        }} />
                       </TouchableOpacity>
                     );
                   })
