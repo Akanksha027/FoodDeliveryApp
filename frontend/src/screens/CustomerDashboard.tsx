@@ -1454,7 +1454,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
               width: 42,
               height: 4,
               borderRadius: 0,
-              backgroundColor: '#FF5A30',
+              backgroundColor: '#F49851',
               alignSelf: 'center',
               marginTop: 10,
               marginBottom: 2,
@@ -1468,14 +1468,14 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
             </View>
 
             {loadingCoupons ? (
-              <Loader size="small" color={T.accent} />
+              <Loader size="small" color="#F49851" />
             ) : (
               <ScrollView
-                style={{ backgroundColor: '#F8FAFC' }}
+                style={{ backgroundColor: '#FFFFFF' }}
                 contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
               >
                 {allCoupons.length === 0 ? (
-                  <Text style={{ textAlign: 'center', color: T.sub, marginVertical: 20 }}>No coupons available right now</Text>
+                  <Text style={{ textAlign: 'center', color: '#F49851', marginVertical: 20 }}>No coupons available right now</Text>
                 ) : (
                   allCoupons.map((coupon) => {
                     const isEligible = subtotal >= parseFloat(coupon.min_order_value);
@@ -1499,16 +1499,17 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                         style={{
                           backgroundColor: '#FFFFFF',
                           borderRadius: 0,
-                          padding: 16,
-                          marginBottom: 16,
-                          borderWidth: 1.5,
-                          borderColor: isEligible ? '#FF5A30' : '#E2E8F0',
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          marginBottom: 10,
+                          borderWidth: 1,
+                          borderColor: isEligible ? '#F49851' : 'rgba(244, 152, 81, 0.25)',
                           position: 'relative',
                           overflow: 'hidden',
                           opacity: isEligible ? 1 : 0.8,
                           ...Platform.select({
                             ios: {
-                              shadowColor: isEligible ? '#FF5A30' : '#000',
+                              shadowColor: isEligible ? '#F49851' : '#000',
                               shadowOpacity: isEligible ? 0.08 : 0.04,
                               shadowRadius: 8,
                               shadowOffset: { width: 0, height: 4 },
@@ -1525,108 +1526,78 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                           left: 0,
                           top: 0,
                           bottom: 0,
-                          width: 6,
-                          backgroundColor: isEligible ? '#FF5A30' : '#CBD5E1',
+                          width: 4,
+                          backgroundColor: isEligible ? '#F49851' : 'rgba(244, 152, 81, 0.25)',
                         }} />
 
-                        {/* Top Row: Promo Code & Badges */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 8 }}>
-                          <View style={{
-                            backgroundColor: isEligible ? '#FFF4F1' : '#F1F5F9',
-                            borderWidth: 1,
-                            borderColor: isEligible ? '#FF5A30' : '#E2E8F0',
-                            borderStyle: 'dashed',
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
-                            borderRadius: 0,
-                          }}>
-                            <Text style={{
-                              fontSize: 14,
-                              fontWeight: '800',
-                              color: isEligible ? '#FF5A30' : '#64748B',
-                              letterSpacing: 1,
-                            }}>
-                              🎫 {coupon.code}
+                        {/* Highly compact row containing all details */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 6 }}>
+                          {/* Left side: Discount amount & info */}
+                          <View style={{ flex: 1, marginRight: 12 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <Text style={{ fontSize: 20, fontWeight: '900', color: isEligible ? '#1E1209' : 'rgba(244, 152, 81, 0.6)' }}>
+                                {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
+                              </Text>
+                              <View style={{
+                                backgroundColor: isEligible ? '#FFF4F1' : 'rgba(244, 152, 81, 0.05)',
+                                borderWidth: 1,
+                                borderColor: isEligible ? '#F49851' : 'rgba(244, 152, 81, 0.2)',
+                                borderStyle: 'dashed',
+                                paddingHorizontal: 8,
+                                paddingVertical: 3,
+                                borderRadius: 0,
+                              }}>
+                                <Text style={{ fontSize: 12, fontWeight: '800', color: isEligible ? '#F49851' : 'rgba(244, 152, 81, 0.6)', letterSpacing: 0.5 }}>
+                                  🎫 {coupon.code}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text style={{ fontSize: 10.5, color: isEligible ? '#F49851' : 'rgba(244, 152, 81, 0.5)', fontWeight: '700', marginTop: 3 }}>
+                              FLAT DISCOUNT • Valid on orders above ₹{parseFloat(coupon.min_order_value).toFixed(0)}
                             </Text>
                           </View>
 
+                          {/* Right side: APPLY badge or LOCKED badge */}
                           {isEligible ? (
                             <View style={{
-                              backgroundColor: '#FF5A30',
-                              paddingHorizontal: 12,
-                              paddingVertical: 6,
+                              backgroundColor: '#F49851',
+                              paddingHorizontal: 14,
+                              paddingVertical: 7,
                               borderRadius: 0,
-                              ...Platform.select({
-                                ios: {
-                                  shadowColor: '#FF5A30',
-                                  shadowOpacity: 0.25,
-                                  shadowRadius: 4,
-                                  shadowOffset: { width: 0, height: 2 },
-                                },
-                                android: {
-                                  elevation: 2,
-                                },
-                              }),
                             }}>
                               <Text style={{ fontSize: 11, color: '#fff', fontWeight: '900', letterSpacing: 0.5 }}>APPLY</Text>
                             </View>
                           ) : (
                             <View style={{
-                              backgroundColor: '#E2E8F0',
+                              backgroundColor: 'rgba(244, 152, 81, 0.1)',
                               paddingHorizontal: 10,
-                              paddingVertical: 6,
+                              paddingVertical: 7,
                               borderRadius: 0,
                               flexDirection: 'row',
                               alignItems: 'center',
-                              gap: 4,
                             }}>
-                              <Text style={{ fontSize: 11 }}>🔒</Text>
-                              <Text style={{ fontSize: 10, color: '#64748B', fontWeight: '700' }}>LOCKED</Text>
+                              <Text style={{ fontSize: 10, color: '#F49851', fontWeight: '800', letterSpacing: 0.5 }}>🔒 LOCKED</Text>
                             </View>
                           )}
-                        </View>
-
-                        {/* Mid Row: Coupon Amount & Info */}
-                        <View style={{ paddingLeft: 8, marginTop: 12 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                            <Text style={{
-                              fontSize: 26,
-                              fontWeight: '900',
-                              color: isEligible ? T.dark : '#475569',
-                            }}>
-                              {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
-                            </Text>
-                            <Text style={{
-                              fontSize: 13,
-                              fontWeight: '800',
-                              color: isEligible ? '#FF5A30' : '#64748B',
-                              marginLeft: 6,
-                            }}>
-                              FLAT DISCOUNT
-                            </Text>
-                          </View>
-
-                          <Text style={{ fontSize: 12.5, color: '#64748B', marginTop: 4, fontWeight: '500' }}>
-                            🛒 Valid on orders above <Text style={{ fontWeight: '700', color: T.dark }}>₹{parseFloat(coupon.min_order_value).toFixed(0)}</Text>
-                          </Text>
                         </View>
 
                         {/* Ineligibility Warning Box */}
                         {!isEligible && (
                           <View style={{
-                            backgroundColor: '#FFF8F6',
+                            backgroundColor: '#FFFBF9',
                             borderWidth: 1,
-                            borderColor: '#FFEAE5',
+                            borderColor: 'rgba(244, 152, 81, 0.15)',
                             borderRadius: 0,
-                            padding: 10,
-                            marginTop: 12,
-                            marginLeft: 8,
+                            paddingVertical: 5,
+                            paddingHorizontal: 8,
+                            marginTop: 8,
+                            marginLeft: 6,
                             flexDirection: 'row',
                             alignItems: 'center',
-                            gap: 8,
+                            gap: 6,
                           }}>
-                            <Text style={{ fontSize: 14 }}>💡</Text>
-                            <Text style={{ fontSize: 11, color: '#FF5A30', fontWeight: '600', flex: 1, lineHeight: 15 }}>
+                            <Text style={{ fontSize: 12 }}>💡</Text>
+                            <Text style={{ fontSize: 10, color: '#F49851', fontWeight: '600', flex: 1 }}>
                               Add <Text style={{ fontWeight: '800' }}>₹{(parseFloat(coupon.min_order_value) - subtotal).toFixed(0)}</Text> more to unlock this coupon!
                             </Text>
                           </View>
