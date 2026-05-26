@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getMyOrders, cancelOrder } from '../lib/api';
+import { Loader } from '../components/Loader';
 
 const T = {
   bg: '#F5F6FA',
@@ -132,8 +133,7 @@ export const OrdersHistoryScreen = ({ route, navigation }: any) => {
 
       {loading ? (
         <View style={s.loadingContainer}>
-          <ActivityIndicator size="large" color={T.accent} />
-          <Text style={s.loadingText}>Fetching your orders...</Text>
+          <Loader text="Fetching your orders..." color={T.accent} />
         </View>
       ) : (
         <ScrollView

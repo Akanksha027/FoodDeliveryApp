@@ -20,7 +20,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, description, price, image_url, category } = body;
+  const { name, description, price, image_url, category, recommendations } = body;
 
   if (!name || !price) {
     return withCors({ error: 'name and price are required' }, 400);
@@ -28,7 +28,15 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('menu_items')
-    .insert([{ name, description, price, image_url, category, available: true }])
+    .insert([{
+      name,
+      description,
+      price,
+      image_url,
+      category,
+      recommendations: recommendations || [],
+      available: true
+    }])
     .select()
     .single();
 

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Sandwiches",
+    "slug": "sandwiches",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "fooddelivery",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo-food.png",
     "userInterfaceStyle": "light",
     "extra": {
       "supabaseUrl": "https://uelxwqpvjdrkxsgotoia.supabase.co",
@@ -20,8 +20,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/logo-food.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },

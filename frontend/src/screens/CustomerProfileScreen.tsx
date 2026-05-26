@@ -206,7 +206,7 @@ export const CustomerProfileScreen = ({
           />
           <RowItem
             icon={<Feather name="credit-card" size={18} color="#333" />}
-            label="Cravk pay"
+            label="Sandwiches pay"
             right={<Text style={{ fontSize: 13, color: '#AAAAAA', fontWeight: '500' }}>₹0.00</Text>}
           />
           <RowItem
@@ -216,8 +216,8 @@ export const CustomerProfileScreen = ({
           />
           <RowItem
             icon={<Feather name="star" size={18} color="#333" />}
-            label="Cravk pro"
-            onPress={() => Alert.alert('Cravk Pro', 'Cravk Pro subscription is coming soon! Enjoy free deliveries.')}
+            label="Sandwiches pro"
+            onPress={() => Alert.alert('Sandwiches Pro', 'Sandwiches Pro subscription is coming soon! Enjoy free deliveries.')}
             isLast
           />
         </SectionCard>
@@ -227,12 +227,12 @@ export const CustomerProfileScreen = ({
           <RowItem
             icon={<Feather name="help-circle" size={18} color="#333" />}
             label="Get help"
-            onPress={() => Alert.alert('Support', 'Need help? Contact support at support@cravk.com')}
+            onPress={() => Alert.alert('Support', 'Need help? Contact support at support@sandwiches.com')}
           />
           <RowItem
             icon={<Feather name="info" size={18} color="#333" />}
             label="About app"
-            onPress={() => Alert.alert('About App', 'Cravk Food Delivery App v1.0.0\nBuilt with ❤️ using React Native & Supabase.')}
+            onPress={() => Alert.alert('About App', 'Sandwiches App v1.0.0\nBuilt with ❤️ using React Native & Supabase.')}
             isLast
           />
         </SectionCard>

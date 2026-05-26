@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -16,6 +16,7 @@ import {
   Modal,
   TextInput,
   Image,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { clearSession } from '../utils/session';
+import { Loader } from '../components/Loader';
 import {
   getMenu,
   getCart,
@@ -96,7 +98,7 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
 
 const CATEGORIES = [
   { id: 'burger', label: 'Burger', image: require('../../assets/burger.png') },
-  { id: 'pizza', label: 'Pizza', image: require('../../assets/pizza.jpg') },
+  { id: 'pizza', label: 'Pizza', image: require('../../assets/pizza.png') },
   { id: 'fries', label: 'Fries', image: require('../../assets/fries.png') },
   { id: 'drink', label: 'Drink', image: require('../../assets/drinks.png') },
 ];
@@ -109,10 +111,10 @@ const RESTAURANTS = [
 ];
 
 const NAV_ITEMS = [
-  { id: 'home', label: 'Home', image: require('../../assets/tabs/home (1).png') },
-  { id: 'fav', label: 'Favorites', image: require('../../assets/tabs/favouriet.png') },
-  { id: 'cart', label: 'Cart', image: require('../../assets/tabs/cart.png'), showBadge: true },
-  { id: 'profile', label: 'Profile', image: require('../../assets/tabs/user (2).png') },
+  { id: 'home', label: 'Home' },
+  { id: 'fav', label: 'Catalog' },
+  { id: 'cart', label: 'Cart', showBadge: true },
+  { id: 'profile', label: 'Profile' },
 ];
 
 const { width: SW } = Dimensions.get('window');
@@ -136,7 +138,7 @@ const shadow = (elevation = 4) =>
 const getDishImage = (name: string) => {
   const n = name.toLowerCase();
   if (n.includes('burger')) return require('../../assets/burger.png');
-  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.jpg');
+  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.png');
   if (n.includes('fries') || n.includes('french')) return require('../../assets/fries.png');
   if (n.includes('coffee') || n.includes('drink') || n.includes('tea') || n.includes('shake') || n.includes('smoothie')) return require('../../assets/drinks.png');
   return require('../../assets/burger.png'); // default fallback
@@ -233,6 +235,29 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
+
+  // Custom soft toast states for high-end alert replacement
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    Animated.timing(toastOpacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start(() => {
+          setToastMessage(null);
+        });
+      }, 1800);
+    });
+  }, [toastOpacity]);
 
   // Coupons modal states
   const [couponsModalVisible, setCouponsModalVisible] = useState(false);
@@ -471,19 +496,92 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
     }, [currentUser])
   );
 
+  // ── AUTO CACHE WRITE HOOKS ──────────────────
+  // Automatically write menu items to cache whenever they change
+  useEffect(() => {
+    if (menuItems.length === 0) return;
+    const saveMenuCache = async () => {
+      try {
+        await AsyncStorage.setItem('@cache_menu_items', JSON.stringify(menuItems));
+      } catch (e) {
+        console.error('Failed to save menu cache:', e);
+      }
+    };
+    saveMenuCache();
+  }, [menuItems]);
+
+  // Automatically write user data to cache whenever any user state changes
+  useEffect(() => {
+    if (!currentUser) return;
+    const saveUserCache = async () => {
+      try {
+        const userData = {
+          cart,
+          orders,
+          addresses,
+          liked,
+          selectedAddressId,
+        };
+        await AsyncStorage.setItem(`@cache_user_data_${currentUser.id}`, JSON.stringify(userData));
+      } catch (e) {
+        console.error('Failed to save user data cache:', e);
+      }
+    };
+    saveUserCache();
+  }, [currentUser, cart, orders, addresses, liked, selectedAddressId]);
+
   const loadData = async (userId: string) => {
     setLoading(true);
 
-    // ── Load menu first (public, no user needed) ──────────────────
+    // 1. Try to load from local cache first for instant startup
     try {
-      const menuData = await getMenu();
-      console.log('[CustomerDashboard] Menu loaded:', menuData?.length, 'items');
-      setMenuItems(Array.isArray(menuData) ? menuData : []);
-    } catch (e) {
-      console.error('[CustomerDashboard] Failed to load menu:', e);
+      const [cachedMenu, cachedUser] = await Promise.all([
+        AsyncStorage.getItem('@cache_menu_items'),
+        AsyncStorage.getItem(`@cache_user_data_${userId}`),
+      ]);
+
+      let hasMenuCache = false;
+      let hasUserCache = false;
+
+      if (cachedMenu) {
+        const parsedMenu = JSON.parse(cachedMenu);
+        if (Array.isArray(parsedMenu) && parsedMenu.length > 0) {
+          setMenuItems(parsedMenu);
+          hasMenuCache = true;
+        }
+      }
+
+      if (cachedUser) {
+        const parsedUser = JSON.parse(cachedUser);
+        if (parsedUser) {
+          if (Array.isArray(parsedUser.cart)) setCart(parsedUser.cart);
+          if (Array.isArray(parsedUser.orders)) setOrders(parsedUser.orders);
+          if (Array.isArray(parsedUser.addresses)) setAddresses(parsedUser.addresses);
+          if (parsedUser.liked) setLiked(parsedUser.liked);
+          if (parsedUser.selectedAddressId) setSelectedAddressId(parsedUser.selectedAddressId);
+          hasUserCache = true;
+        }
+      }
+
+      // If we have cached both menu and user data, dismiss loading instantly!
+      if (hasMenuCache && hasUserCache) {
+        setLoading(false);
+      }
+    } catch (cacheErr) {
+      console.error('[CustomerDashboard] Cache read failed on loadData:', cacheErr);
     }
 
-    // ── Load user-specific data (cart, orders, addresses, favorites) ─────────
+    // 2. Perform background fetches in the background (SWR pattern)
+    // ── Load menu
+    try {
+      const menuData = await getMenu();
+      const freshMenu = Array.isArray(menuData) ? menuData : [];
+      setMenuItems(freshMenu);
+    } catch (e) {
+      console.error('[CustomerDashboard] Background menu load failed:', e);
+    }
+
+    // ── Load user data
     try {
       const [cartData, ordersData, addressData, favData] = await Promise.all([
         getCart(userId),
@@ -491,25 +589,31 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
         getAddresses(userId),
         getFavorites(userId),
       ]);
-      setCart(Array.isArray(cartData) ? cartData : []);
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
 
-      const addrList = Array.isArray(addressData) ? addressData : [];
-      setAddresses(addrList);
+      const freshCart = Array.isArray(cartData) ? cartData : [];
+      const freshOrders = Array.isArray(ordersData) ? ordersData : [];
+      const freshAddresses = Array.isArray(addressData) ? addressData : [];
+      const freshFavs = Array.isArray(favData) ? favData : [];
 
-      const favs = Array.isArray(favData) ? favData : [];
+      setCart(freshCart);
+      setOrders(freshOrders);
+      setAddresses(freshAddresses);
+
       const likedMap: Record<string, boolean> = {};
-      favs.forEach((f: any) => {
+      freshFavs.forEach((f: any) => {
         likedMap[f.menu_item_id] = true;
       });
       setLiked(likedMap);
 
-      const defaultAddr = addrList.find((a: any) => a.is_default) || addrList[0];
-      if (defaultAddr) setSelectedAddressId(defaultAddr.id);
+      const defaultAddr = freshAddresses.find((a: any) => a.is_default) || freshAddresses[0];
+      if (defaultAddr && !selectedAddressId) {
+        setSelectedAddressId(defaultAddr.id);
+      }
     } catch (e) {
-      console.error('[CustomerDashboard] Failed to load user data:', e);
+      console.error('[CustomerDashboard] Background user data load failed:', e);
     }
 
+    // Ensure spinner is dismissed in case of no cache hits or background completion
     setLoading(false);
   };
 
@@ -519,7 +623,8 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
     try {
       const menuData = await getMenu();
-      setMenuItems(Array.isArray(menuData) ? menuData : []);
+      const freshMenu = Array.isArray(menuData) ? menuData : [];
+      setMenuItems(freshMenu);
     } catch (e) {
       console.error('[CustomerDashboard] Refresh menu failed:', e);
     }
@@ -531,16 +636,26 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
         getAddresses(currentUser.id),
         getFavorites(currentUser.id),
       ]);
-      setCart(Array.isArray(cartData) ? cartData : []);
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
-      setAddresses(Array.isArray(addressData) ? addressData : []);
 
-      const favs = Array.isArray(favData) ? favData : [];
+      const freshCart = Array.isArray(cartData) ? cartData : [];
+      const freshOrders = Array.isArray(ordersData) ? ordersData : [];
+      const freshAddresses = Array.isArray(addressData) ? addressData : [];
+      const freshFavs = Array.isArray(favData) ? favData : [];
+
+      setCart(freshCart);
+      setOrders(freshOrders);
+      setAddresses(freshAddresses);
+
       const likedMap: Record<string, boolean> = {};
-      favs.forEach((f: any) => {
+      freshFavs.forEach((f: any) => {
         likedMap[f.menu_item_id] = true;
       });
       setLiked(likedMap);
+
+      const defaultAddr = freshAddresses.find((a: any) => a.is_default) || freshAddresses[0];
+      if (defaultAddr && !selectedAddressId) {
+        setSelectedAddressId(defaultAddr.id);
+      }
     } catch (e) {
       console.error('[CustomerDashboard] Refresh user data failed:', e);
     }
@@ -553,12 +668,40 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
       Alert.alert('Login Required', 'Please log in to add items to your cart.');
       return;
     }
+
+    // 1. Optimistic UI update
+    const existingIndex = cart.findIndex(c => c.id === item.id);
+    let updatedCart = [...cart];
+    if (existingIndex !== -1) {
+      updatedCart[existingIndex] = {
+        ...updatedCart[existingIndex],
+        quantity: updatedCart[existingIndex].quantity + 1
+      };
+    } else {
+      updatedCart.push({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: 1,
+        cart_item_id: `temp_${Date.now()}` // temporary unique key for instant rendering
+      });
+    }
+    setCart(updatedCart);
+
+    // Optimistically update AsyncStorage cache
+    await AsyncStorage.setItem(`@cache_cart_data_${currentUser.id}`, JSON.stringify(updatedCart)).catch(() => { });
+
     try {
       await addToCart(currentUser.id, item.id, 1);
       const cartData = await getCart(currentUser.id);
       setCart(cartData);
-      Alert.alert('🛍️ Added to Cart', `${item.name} has been added!`);
+      await AsyncStorage.setItem(`@cache_cart_data_${currentUser.id}`, JSON.stringify(cartData)).catch(() => { });
+      showToast(`${item.name} added to cart!`);
     } catch (e: any) {
+      // Revert optimistic update by pulling fresh database data
+      const cartData = await getCart(currentUser.id).catch(() => cart);
+      setCart(cartData);
+      await AsyncStorage.setItem(`@cache_cart_data_${currentUser.id}`, JSON.stringify(cartData)).catch(() => { });
       Alert.alert('Error', e.message || 'Could not add item to cart');
     }
   };
@@ -566,11 +709,33 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
   const handleUpdateQty = async (itemId: string, currentQty: number, increment: boolean) => {
     if (!currentUser) return;
     const newQty = increment ? currentQty + 1 : currentQty - 1;
+
+    // 1. Optimistic UI update
+    let updatedCart = cart.map(c => {
+      if (c.cart_item_id === itemId || c.id === itemId) {
+        return { ...c, quantity: newQty };
+      }
+      return c;
+    }).filter(c => c.quantity > 0);
+    setCart(updatedCart);
+
+    // Optimistically update AsyncStorage cache
+    await AsyncStorage.setItem(`@cache_cart_data_${currentUser.id}`, JSON.stringify(updatedCart)).catch(() => { });
+
     try {
-      await updateCartItem(itemId, currentUser.id, newQty);
+      if (newQty <= 0) {
+        await removeCartItem(itemId, currentUser.id);
+      } else {
+        await updateCartItem(itemId, currentUser.id, newQty);
+      }
       const cartData = await getCart(currentUser.id);
       setCart(cartData);
+      await AsyncStorage.setItem(`@cache_cart_data_${currentUser.id}`, JSON.stringify(cartData)).catch(() => { });
     } catch (e: any) {
+      // Revert optimistic update by pulling fresh database data
+      const cartData = await getCart(currentUser.id).catch(() => cart);
+      setCart(cartData);
+      await AsyncStorage.setItem(`@cache_cart_data_${currentUser.id}`, JSON.stringify(cartData)).catch(() => { });
       Alert.alert('Error', e.message || 'Could not update quantity');
     }
   };
@@ -819,7 +984,20 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
       } else if (targetCat === 'drink') {
         if (!cat.includes('drink') && !cat.includes('beverage') && !cat.includes('coffee') && !name.includes('coffee') && !name.includes('lemonade') && !name.includes('smoothie')) return false;
       } else {
-        if (!cat.includes(targetCat) && !name.includes(targetCat) && !desc.includes(targetCat)) return false;
+        const cleanCat = cat.trim();
+        const cleanTarget = targetCat.trim();
+        const catSingular = cleanCat.endsWith('s') && cleanCat.length > 3 ? cleanCat.slice(0, -1) : cleanCat;
+        const targetSingular = cleanTarget.endsWith('s') && cleanTarget.length > 3 ? cleanTarget.slice(0, -1) : cleanTarget;
+
+        const matches =
+          cleanCat.includes(cleanTarget) ||
+          cleanTarget.includes(cleanCat) ||
+          catSingular.includes(targetSingular) ||
+          targetSingular.includes(catSingular) ||
+          name.includes(cleanTarget) ||
+          desc.includes(cleanTarget);
+
+        if (!matches) return false;
       }
     }
 
@@ -840,10 +1018,12 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
   if (locationState === 'checking' || loading) {
     return (
-      <View style={s.center}>
-        <ActivityIndicator size="large" color={T.accent} />
-        <Text style={s.loadingText}>Configuring secure delivery zones...</Text>
-      </View>
+      <Loader
+        fullScreen={true}
+        text="Configuring secure delivery zones..."
+        color={T.accent}
+        backgroundColor="#F5F6FA"
+      />
     );
   }
 
@@ -866,10 +1046,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
           {locationState === 'detecting' ? (
             <View style={{ alignItems: 'center', marginVertical: 20 }}>
-              <ActivityIndicator size="large" color="#FF6B35" />
-              <Text style={{ color: '#1C1C2E', marginTop: 16, fontSize: 15, fontWeight: '600' }}>
-                Detecting coordinates via GPS...
-              </Text>
+              <Loader text="Detecting coordinates via GPS..." color="#FF6B35" />
             </View>
           ) : (
             <View style={{ gap: 14 }}>
@@ -1010,7 +1187,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
             ) : null}
 
             {manualSearchLoading ? (
-              <ActivityIndicator size="large" color="#FF6B35" style={{ marginVertical: 20 }} />
+              <Loader text="Validating address details..." color="#FF6B35" />
             ) : (
               <TouchableOpacity
                 style={{ backgroundColor: '#FF6B35', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginTop: 10, flexDirection: 'row', ...shadow(4) }}
@@ -1043,10 +1220,11 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
   return (
     <SafeAreaView style={s.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={T.surface} />
-      <View style={[s.root, isWeb && s.webWrapper]}>
+      <View style={[s.root, activeNav === 'fav' && { backgroundColor: '#FFFFFF' }, isWeb && s.webWrapper]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={s.scrollContent}
+          contentContainerStyle={[s.scrollContent, activeNav === 'fav' && { backgroundColor: '#FFFFFF' }]}
+          style={activeNav === 'fav' && { backgroundColor: '#FFFFFF' }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} colors={[T.accent]} />}
         >
           {/* ───────────────── modular tabs ───────────────── */}
@@ -1075,9 +1253,11 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
           {activeNav === 'fav' && (
             <CustomerFavoritesScreen
               menuItems={menuItems}
+              cart={cart}
               liked={liked}
               toggleLike={toggleLike}
               handleAddToCart={handleAddToCart}
+              handleUpdateQty={handleUpdateQty}
               navigation={navigation}
             />
           )}
@@ -1124,34 +1304,44 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
         {/* Bottom Navigation */}
         <View style={s.bottomNav}>
-          {NAV_ITEMS.map(nav => (
-            <TouchableOpacity
-              key={nav.id}
-              style={s.navItem}
-              onPress={() => setActiveNav(nav.id as any)}
-              activeOpacity={0.7}
-            >
-              <View style={{ position: 'relative' }}>
-                <View style={[s.navIconWrap, activeNav === nav.id && s.navIconActive]}>
-                  <Image
-                    source={nav.image}
-                    style={[
-                      s.navIconImage,
-                      { tintColor: activeNav === nav.id ? T.text : T.sub }
-                    ]}
-                  />
-                </View>
-                {nav.showBadge && cartCount > 0 && (
-                  <View style={s.navBadge}>
-                    <Text style={s.navBadgeTxt}>{cartCount > 99 ? '99+' : cartCount}</Text>
+          {NAV_ITEMS.map(nav => {
+            const isActive = activeNav === nav.id;
+            const iconColor = isActive ? '#f49851' : '#1A1A1A';
+            
+            let iconComponent = null;
+            if (nav.id === 'home') {
+              iconComponent = <Feather name="home" size={22} color={iconColor} />;
+            } else if (nav.id === 'fav') {
+              iconComponent = <Feather name="list" size={22} color={iconColor} />;
+            } else if (nav.id === 'cart') {
+              iconComponent = <Feather name="shopping-cart" size={22} color={iconColor} />;
+            } else if (nav.id === 'profile') {
+              iconComponent = <Feather name="user" size={22} color={iconColor} />;
+            }
+
+            return (
+              <TouchableOpacity
+                key={nav.id}
+                style={s.navItem}
+                onPress={() => setActiveNav(nav.id as any)}
+                activeOpacity={0.7}
+              >
+                <View style={{ position: 'relative' }}>
+                  <View style={s.navIconWrap}>
+                    {iconComponent}
                   </View>
-                )}
-              </View>
-              <Text style={[s.navLabel, activeNav === nav.id && s.navLabelActive]}>
-                {nav.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                  {nav.showBadge && cartCount > 0 && (
+                    <View style={s.navBadge}>
+                      <Text style={s.navBadgeTxt}>{cartCount > 99 ? '99+' : cartCount}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[s.navLabel, isActive && s.navLabelActive]}>
+                  {nav.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -1278,7 +1468,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
             </View>
 
             {loadingCoupons ? (
-              <ActivityIndicator color={T.accent} style={{ marginVertical: 30 }} />
+              <Loader size="small" color={T.accent} />
             ) : (
               <ScrollView
                 style={{ backgroundColor: '#F8FAFC' }}
@@ -1485,25 +1675,32 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
         onRequestClose={() => setConfirmationModalVisible(false)}
       >
         <View style={s.modalOverlay}>
-          <View style={[s.modalContainer, { maxHeight: '80%' }]}>
-            <ScrollView contentContainerStyle={{ padding: 20 }}>
+          <View style={[s.modalContainer, { maxHeight: '80%', borderTopLeftRadius: 0, borderTopRightRadius: 0, backgroundColor: '#FFFFFF' }]}>
+            <ScrollView contentContainerStyle={{ padding: 24 }}>
               {/* Success Badge */}
-              <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <View style={{ alignItems: 'center', marginBottom: 28, marginTop: 10 }}>
                 <View style={{
-                  width: 70,
-                  height: 70,
-                  borderRadius: 35,
-                  backgroundColor: '#E8F5E9',
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: '#FFF4EE',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginBottom: 12
+                  marginBottom: 16
                 }}>
-                  <Text style={{ fontSize: 36 }}>🎉</Text>
+                  <Feather name="check" size={30} color="#E8956D" />
                 </View>
-                <Text style={{ fontSize: 20, fontWeight: '900', color: '#1B5E20', textAlign: 'center' }}>
+                <Text style={{
+                  fontSize: 22,
+                  fontWeight: '800',
+                  color: '#1E1209',
+                  textAlign: 'center',
+                  fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+                  letterSpacing: -0.3
+                }}>
                   Order Placed Successfully!
                 </Text>
-                <Text style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
+                <Text style={{ fontSize: 13, color: '#7A6A57', fontWeight: '500', marginTop: 6 }}>
                   Estimated preparation time: 25-35 mins
                 </Text>
               </View>
@@ -1511,32 +1708,52 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
               {placedOrder ? (
                 <>
                   {/* Order ID & Status */}
-                  <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                  <View style={{
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: '#F0EAE2',
+                    padding: 16,
+                    marginBottom: 18,
+                    borderRadius: 0
+                  }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: T.sub }}>Order Code:</Text>
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#7A6A57' }}>Order Code:</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#1E1209', fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }) }}>
                         #{placedOrder.id?.slice(-6).toUpperCase()}
                       </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: T.sub }}>Payment Status:</Text>
-                      <View style={{ backgroundColor: '#FFF3E0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#E65100' }}>CASH ON DELIVERY</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#7A6A57' }}>Payment Status:</Text>
+                      <View style={{ backgroundColor: '#FFF4EE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 0 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: '#E8956D', letterSpacing: 0.5 }}>CASH ON DELIVERY</Text>
                       </View>
                     </View>
                   </View>
 
                   {/* Items list */}
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark, marginBottom: 10 }}>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '800',
+                      color: '#1E1209',
+                      marginBottom: 10,
+                      letterSpacing: 0.8,
+                      fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+                      textTransform: 'uppercase'
+                    }}>
                       Ordered Items:
                     </Text>
                     {JSON.parse(typeof placedOrder.items === 'string' ? placedOrder.items : JSON.stringify(placedOrder.items || '[]')).map((item: any, idx: number) => (
-                      <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 4 }}>
-                        <Text style={{ fontSize: 13, color: T.text, flex: 1 }} numberOfLines={1}>
-                          🍽️ {item.name} <Text style={{ color: T.sub, fontWeight: '700' }}>x{item.quantity}</Text>
+                      <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 }}>
+                        <Text style={{
+                          fontSize: 14,
+                          color: '#1E1209',
+                          fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+                          flex: 1
+                        }} numberOfLines={1}>
+                          {item.name} <Text style={{ color: '#7A6A57', fontWeight: '700', fontSize: 13 }}>×{item.quantity}</Text>
                         </Text>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: T.dark }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E1209' }}>
                           ₹{(item.price * item.quantity).toFixed(2)}
                         </Text>
                       </View>
@@ -1545,56 +1762,92 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
                   {/* Delivery Location Summary */}
                   {selectedAddressObj && (
-                    <View style={{ marginBottom: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F0F0F5', paddingVertical: 12 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark, marginBottom: 6 }}>
+                    <View style={{
+                      marginBottom: 20,
+                      borderTopWidth: 1,
+                      borderBottomWidth: 1,
+                      borderColor: '#F0EAE2',
+                      paddingVertical: 14
+                    }}>
+                      <Text style={{
+                        fontSize: 12,
+                        fontWeight: '800',
+                        color: '#1E1209',
+                        marginBottom: 8,
+                        letterSpacing: 0.8,
+                        fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+                        textTransform: 'uppercase'
+                      }}>
                         Delivering To:
                       </Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: T.text }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E1209', fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }) }}>
                         📍 {selectedAddressObj.receiver_name}
                       </Text>
-                      <Text style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>
+                      <Text style={{ fontSize: 12, color: '#7A6A57', marginTop: 4, fontWeight: '500' }}>
                         {selectedAddressObj.address_line1}, {selectedAddressObj.city}
                       </Text>
-                      <Text style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>
+                      <Text style={{ fontSize: 12, color: '#7A6A57', marginTop: 2, fontWeight: '500' }}>
                         📞 {selectedAddressObj.phone_number}
                       </Text>
                     </View>
                   )}
 
                   {/* Bill Details Summary */}
-                  <View style={{ backgroundColor: '#EEF2F6', borderRadius: 12, padding: 14, marginBottom: 20 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: T.dark, marginBottom: 10 }}>
+                  <View style={{
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: '#F0EAE2',
+                    padding: 16,
+                    marginBottom: 26,
+                    borderRadius: 0
+                  }}>
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '800',
+                      color: '#1E1209',
+                      marginBottom: 12,
+                      letterSpacing: 0.8,
+                      fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
+                      textTransform: 'uppercase'
+                    }}>
                       Final Bill Summary:
                     </Text>
 
                     {placedOrder.discount_amount > 0 && (
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 3 }}>
-                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '600' }}>Applied Promo:</Text>
-                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '700' }}>
-                          🎫 {placedOrder.promo_code}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#7A6A57', fontWeight: '500' }}>Applied Promo:</Text>
+                        <Text style={{ fontSize: 13, color: '#E8956D', fontWeight: '700' }}>
+                          {placedOrder.promo_code}
                         </Text>
                       </View>
                     )}
 
                     {placedOrder.discount_amount > 0 && (
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 3 }}>
-                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '600' }}>Discount Savings:</Text>
-                        <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '700' }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#7A6A57', fontWeight: '500' }}>Discount Savings:</Text>
+                        <Text style={{ fontSize: 13, color: '#E8956D', fontWeight: '700' }}>
                           - ₹{parseFloat(placedOrder.discount_amount).toFixed(2)}
                         </Text>
                       </View>
                     )}
 
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 3 }}>
-                      <Text style={{ fontSize: 13, color: T.sub, fontWeight: '600' }}>Delivery Fee:</Text>
-                      <Text style={{ fontSize: 13, color: '#388E3C', fontWeight: '700' }}>FREE</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 4 }}>
+                      <Text style={{ fontSize: 13, color: '#7A6A57', fontWeight: '500' }}>Delivery Fee:</Text>
+                      <Text style={{ fontSize: 13, color: '#E8956D', fontWeight: '700' }}>FREE</Text>
                     </View>
 
-                    <View style={{ height: 1, backgroundColor: '#D1D5DB', marginVertical: 8 }} />
+                    <View style={{ height: 1, backgroundColor: '#F0EAE2', marginVertical: 10 }} />
 
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 15, fontWeight: '900', color: T.dark }}>Total Bill Amount:</Text>
-                      <Text style={{ fontSize: 16, fontWeight: '900', color: T.accent }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{
+                        fontSize: 15,
+                        fontWeight: '800',
+                        color: '#1E1209',
+                        fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' })
+                      }}>
+                        Total Bill Amount:
+                      </Text>
+                      <Text style={{ fontSize: 18, fontWeight: '900', color: '#E8956D', letterSpacing: -0.5 }}>
                         ₹{parseFloat(placedOrder.total).toFixed(2)}
                       </Text>
                     </View>
@@ -1603,24 +1856,23 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
               ) : null}
 
               {/* Action Buttons */}
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 12, marginBottom: 12 }}>
                 <TouchableOpacity
                   onPress={() => {
                     setConfirmationModalVisible(false);
                     navigation.navigate('OrdersHistory', { userId: currentUser?.id });
                   }}
                   style={{
-                    backgroundColor: '#CCFF00',
-                    height: 50,
-                    borderRadius: 25,
+                    backgroundColor: '#E8956D',
+                    height: 54,
+                    borderRadius: 0,
                     justifyContent: 'center',
                     alignItems: 'center',
-                    borderWidth: 1.5,
-                    borderColor: '#111'
                   }}
+                  activeOpacity={0.8}
                 >
-                  <Text style={{ color: '#111', fontWeight: '800', fontSize: 15 }}>
-                    🛵 Track Active Orders
+                  <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                    Track Active Orders
                   </Text>
                 </TouchableOpacity>
 
@@ -1630,15 +1882,16 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
                     setActiveNav('home');
                   }}
                   style={{
-                    borderWidth: 1.5,
-                    borderColor: '#E5E7EB',
-                    height: 50,
-                    borderRadius: 25,
+                    borderWidth: 1,
+                    borderColor: '#F0EAE2',
+                    height: 54,
+                    borderRadius: 0,
                     justifyContent: 'center',
                     alignItems: 'center'
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{ color: T.sub, fontWeight: '700', fontSize: 14 }}>
+                  <Text style={{ color: '#7A6A57', fontWeight: '700', fontSize: 14 }}>
                     Go Back to Home
                   </Text>
                 </TouchableOpacity>
@@ -1758,6 +2011,13 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
           </View>
         </View>
       </Modal>
+
+      {/* Premium Automated Soft Toast Notification */}
+      {toastMessage && (
+        <Animated.View style={[s.toastContainer, { opacity: toastOpacity }]}>
+          <Text style={s.toastText}>{toastMessage}</Text>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 };
@@ -2111,42 +2371,48 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    height: Platform.OS === 'ios' ? 84 : 64,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+    width: '100%',
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 30 : 20,
-    left: 20,
-    right: 20,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
   },
-  navItem: { alignItems: 'center', gap: 2, minWidth: 56 },
+  navItem: { 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    flex: 1,
+    height: '100%',
+  },
   navIconWrap: {
-    width: 42, height: 42, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', 
+    justifyContent: 'center',
+    height: 28,
   },
-  navIconActive: { backgroundColor: T.accentBg },
+  navIconActive: {},
   navIconImage: {
     width: 24,
     height: 24,
     resizeMode: 'contain',
   },
-  navLabel: { fontSize: 10, fontWeight: '600', color: '#CBD5E1' },
-  navLabelActive: { color: T.accent },
+  navLabel: { 
+    fontSize: 11, 
+    fontWeight: '500', 
+    color: '#8E8E93',
+    marginTop: 4,
+    fontFamily: 'Poppins_500Medium',
+  },
+  navLabelActive: { 
+    color: '#f49851', // Orange active color matching screenshot
+    fontWeight: '600',
+  },
   navBadge: {
-    position: 'absolute', top: 4, right: 4,
-    minWidth: 15, height: 15, borderRadius: 8,
+    position: 'absolute', top: -4, right: -10,
+    minWidth: 16, height: 16, borderRadius: 8,
     backgroundColor: T.accent,
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 3,
@@ -2519,5 +2785,33 @@ const s = StyleSheet.create({
     color: '#E11D48',
     fontWeight: '800',
     fontSize: 12,
+  },
+  toastContainer: {
+    position: 'absolute',
+    bottom: 90,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#fef3ea',
+    borderRadius: 0, // Sharp corners!
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF5A30',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    zIndex: 99999,
+  },
+  toastText: {
+    color: '#f49851',
+    fontSize: 14,
+    fontWeight: '400',
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
 });

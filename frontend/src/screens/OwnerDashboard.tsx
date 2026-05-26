@@ -4,9 +4,11 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, RefreshControl, Platform
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { clearSession } from '../utils/session';
+import { Loader } from '../components/Loader';
 
 // Direct Vercel URL since EXPO_PUBLIC vars are not available on Expo Web bundle
 const BACKEND = 'https://food-delivery-app-beta-wheat.vercel.app';
@@ -30,8 +32,9 @@ export const OwnerDashboard = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'promos' | 'settings'>('orders');
   const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [newItem, setNewItem] = useState({ name: '', category: '', description: '', price: '' });
+  const [newItem, setNewItem] = useState({ name: '', category: '', description: '', price: '', recommendations: [] as string[] });
   const [addingItem, setAddingItem] = useState(false);
+  const [expandedRecId, setExpandedRecId] = useState<string | null>(null);
 
   // Store settings coordinates
   const [kitchenAddress, setKitchenAddress] = useState('');
@@ -120,7 +123,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
         const data = JSON.parse(event.data);
         if (data && data.type === 'LOCATION_SELECTED') {
           console.log('[Map] Received coordinates from map picker:', data.address, data.latitude, data.longitude);
-          
+
           setUpdatingLocation(true);
           const res = await fetch(`${BACKEND}/api/kitchen`, {
             method: 'POST',
@@ -227,10 +230,11 @@ export const OwnerDashboard = ({ navigation }: any) => {
           category: newItem.category,
           description: newItem.description,
           price: parseFloat(newItem.price),
+          recommendations: newItem.recommendations || [],
         }),
       });
       if (res.ok) {
-        setNewItem({ name: '', category: '', description: '', price: '' });
+        setNewItem({ name: '', category: '', description: '', price: '', recommendations: [] });
         await fetchMenu();
         Alert.alert('Success', 'Menu item added!');
       }
@@ -340,10 +344,11 @@ export const OwnerDashboard = ({ navigation }: any) => {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366F1" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
+      <Loader
+        fullScreen={true}
+        text="Loading owner panel..."
+        color="#6366F1"
+      />
     );
   }
 
@@ -443,28 +448,121 @@ export const OwnerDashboard = ({ navigation }: any) => {
               <TextInput
                 style={styles.input}
                 placeholder="Item Name *"
+                placeholderTextColor="#888888"
                 value={newItem.name}
                 onChangeText={v => setNewItem(p => ({ ...p, name: v }))}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Category (e.g. Burger, Pizza, Fries, Drink) *"
+                placeholderTextColor="#888888"
                 value={newItem.category}
                 onChangeText={v => setNewItem(p => ({ ...p, category: v }))}
               />
+
+              {/* Existing Categories Quick Select */}
+              {menuItems.length > 0 && (
+                <View style={{ marginBottom: 12, marginTop: -4 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#6B7280', marginBottom: 6 }}>
+                    🏷️ Quick Select / Existing Categories:
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 6, paddingVertical: 4 }}>
+                    {Array.from(new Set(
+                      menuItems.map((m: any) => {
+                        const c = m.category?.trim();
+                        return c ? c.charAt(0).toUpperCase() + c.slice(1).toLowerCase() : '';
+                      }).filter(Boolean)
+                    )).map((cat: string) => {
+                      const isSelected = newItem.category?.toLowerCase() === cat.toLowerCase();
+                      return (
+                        <TouchableOpacity
+                          key={cat}
+                          onPress={() => setNewItem(p => ({ ...p, category: cat }))}
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 12,
+                            borderWidth: 1.5,
+                            borderColor: isSelected ? '#4F46E5' : '#E5E7EB',
+                            backgroundColor: isSelected ? '#EEF2F6' : '#FFFFFF',
+                            marginRight: 6,
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, color: isSelected ? '#4F46E5' : '#4B5563', fontWeight: isSelected ? '700' : '600' }}>
+                            {cat}
+                          </Text>
+                          {isSelected && <Text style={{ fontSize: 9, color: '#4F46E5', marginLeft: 4 }}>✓</Text>}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
               <TextInput
                 style={styles.input}
                 placeholder="Description"
+                placeholderTextColor="#888888"
                 value={newItem.description}
                 onChangeText={v => setNewItem(p => ({ ...p, description: v }))}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Price (₹) *"
+                placeholderTextColor="#888888"
                 value={newItem.price}
                 onChangeText={v => setNewItem(p => ({ ...p, price: v }))}
                 keyboardType="numeric"
               />
+
+              {/* Recommendations Selection */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>
+                  💡 Recommends with this item (Add to Order suggestions):
+                </Text>
+                {menuItems.length === 0 ? (
+                  <Text style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>
+                    No other menu items available to recommend.
+                  </Text>
+                ) : (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
+                    {menuItems.map((m: any) => {
+                      const isSelected = (newItem.recommendations || []).includes(m.id);
+                      return (
+                        <TouchableOpacity
+                          key={m.id}
+                          onPress={() => {
+                            const list = newItem.recommendations || [];
+                            const updated = isSelected
+                              ? list.filter(id => id !== m.id)
+                              : [...list, m.id];
+                            setNewItem(p => ({ ...p, recommendations: updated }));
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                            borderRadius: 20,
+                            borderWidth: 1.5,
+                            borderColor: isSelected ? '#4F46E5' : '#E5E7EB',
+                            backgroundColor: isSelected ? '#EEF2F6' : '#FFFFFF',
+                            marginRight: 8,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: isSelected ? '#4F46E5' : '#374151', fontWeight: '600' }}>
+                            {m.name}
+                          </Text>
+                          {isSelected && <Text style={{ fontSize: 10, color: '#4F46E5' }}>✓</Text>}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </View>
+
               <TouchableOpacity
                 style={[styles.addBtn, addingItem && styles.disabledBtn]}
                 onPress={addMenuItem}
@@ -479,22 +577,134 @@ export const OwnerDashboard = ({ navigation }: any) => {
               <Text style={styles.emptyText}>No menu items yet</Text>
             ) : (
               menuItems.map(item => (
-                <View key={item.id} style={styles.menuCard}>
-                  <View style={styles.menuCardContent}>
-                    <Text style={styles.menuItemName}>
-                      {item.name} <Text style={{ fontSize: 13, fontWeight: 'normal', color: '#6B7280' }}>({item.category || 'Uncategorized'})</Text>
-                    </Text>
-                    {item.description ? (
-                      <Text style={styles.menuItemDesc}>{item.description}</Text>
-                    ) : null}
-                    <Text style={styles.menuItemPrice}>₹{item.price}</Text>
+                <View key={item.id} style={{
+                  backgroundColor: '#fff',
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 10,
+                  elevation: 1,
+                }}>
+                  {/* Top Row: Details & Delete */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flex: 1, marginRight: 10 }}>
+                      <Text style={styles.menuItemName}>
+                        {item.name} <Text style={{ fontSize: 13, fontWeight: 'normal', color: '#6B7280' }}>({item.category || 'Uncategorized'})</Text>
+                      </Text>
+                      {item.description ? (
+                        <Text style={styles.menuItemDesc}>{item.description}</Text>
+                      ) : null}
+                      <Text style={styles.menuItemPrice}>₹{item.price}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => deleteMenuItem(item.id)}
+                    >
+                      <Text style={styles.deleteBtnText}>🗑</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => deleteMenuItem(item.id)}
-                  >
-                    <Text style={styles.deleteBtnText}>🗑</Text>
-                  </TouchableOpacity>
+
+                  {/* Recommendation row listing */}
+                  <View style={{
+                    marginTop: 10,
+                    borderTopWidth: 1,
+                    borderColor: '#F3F4F6',
+                    paddingTop: 8,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <View style={{ flex: 1, marginRight: 10 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                        🍽️ Recommends:
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#374151', marginTop: 2, fontWeight: '600' }} numberOfLines={1}>
+                        {(() => {
+                          const recs = item.recommendations || [];
+                          if (recs.length === 0) return 'No items recommended yet';
+                          return recs.map((id: string) => {
+                            const found = menuItems.find(m => m.id === id);
+                            return found ? found.name : '';
+                          }).filter(Boolean).join(', ');
+                        })()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setExpandedRecId(expandedRecId === item.id ? null : item.id)}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 4,
+                        backgroundColor: '#F3F4F6',
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB'
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#4F46E5' }}>
+                        {expandedRecId === item.id ? 'Close' : 'Manage'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Collapsible Selectors */}
+                  {expandedRecId === item.id && (
+                    <View style={{ marginTop: 12, backgroundColor: '#FAFAFA', padding: 10, borderRadius: 6, borderWidth: 1, borderColor: '#F0F0F0' }}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: '#374151', marginBottom: 6 }}>
+                        Select items to offer to customers with {item.name}:
+                      </Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
+                        {menuItems.filter((m: any) => m.id !== item.id).map((m: any) => {
+                          const currentRecs = item.recommendations || [];
+                          const isSelected = currentRecs.includes(m.id);
+                          return (
+                            <TouchableOpacity
+                              key={m.id}
+                              onPress={async () => {
+                                const list = item.recommendations || [];
+                                const updated = isSelected
+                                  ? list.filter((id: string) => id !== m.id)
+                                  : [...list, m.id];
+
+                                // Optimistically update state
+                                setMenuItems(prev => prev.map(mi => mi.id === item.id ? { ...mi, recommendations: updated } : mi));
+
+                                try {
+                                  const res = await fetch(`${BACKEND}/api/menu/${item.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                                    body: JSON.stringify({ recommendations: updated }),
+                                  });
+                                  if (!res.ok) {
+                                    const errData = await res.json().catch(() => ({}));
+                                    throw new Error(errData.error || `HTTP ${res.status}`);
+                                  }
+                                } catch (e: any) {
+                                  Alert.alert('Error', e.message || 'Failed to update recommendations in database');
+                                  await fetchMenu(); // Revert optimistic update by pulling fresh from db
+                                }
+                              }}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 14,
+                                borderWidth: 1.5,
+                                borderColor: isSelected ? '#4F46E5' : '#E5E7EB',
+                                backgroundColor: isSelected ? '#EEF2F6' : '#FFFFFF',
+                                marginRight: 8,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <Text style={{ fontSize: 11, color: isSelected ? '#4F46E5' : '#475569', fontWeight: '600' }}>
+                                {m.name}
+                              </Text>
+                              {isSelected && <Text style={{ fontSize: 9, color: '#4F46E5' }}>✓</Text>}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
               ))
             )}
@@ -504,10 +714,11 @@ export const OwnerDashboard = ({ navigation }: any) => {
             {/* Add Promo Code Form */}
             <View style={styles.addItemCard}>
               <Text style={styles.sectionTitle}>🎫 Add New Promo Code</Text>
-              
+
               <TextInput
                 style={styles.input}
                 placeholder="PROMO CODE (e.g. SAVE15) *"
+                placeholderTextColor="#888888"
                 value={newPromo.code}
                 onChangeText={v => setNewPromo(p => ({ ...p, code: v.toUpperCase().trim() }))}
                 autoCapitalize="characters"
@@ -552,6 +763,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
               <TextInput
                 style={styles.input}
                 placeholder={newPromo.discount_type === 'percentage' ? "Discount Percentage (e.g. 15) *" : "Discount Value in ₹ (e.g. 100) *"}
+                placeholderTextColor="#888888"
                 value={newPromo.discount_value}
                 onChangeText={v => setNewPromo(p => ({ ...p, discount_value: v }))}
                 keyboardType="numeric"
@@ -560,6 +772,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
               <TextInput
                 style={styles.input}
                 placeholder="Minimum Order Value in ₹ (e.g. 400)"
+                placeholderTextColor="#888888"
                 value={newPromo.min_order_value}
                 onChangeText={v => setNewPromo(p => ({ ...p, min_order_value: v }))}
                 keyboardType="numeric"
@@ -600,7 +813,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
                         </Text>
                       </View>
                     </View>
-                    
+
                     <Text style={{ fontSize: 13, color: '#4B5563', marginTop: 4, fontWeight: '600' }}>
                       🎁 {promo.discount_type === 'percentage' ? `${promo.discount_value}% Off` : `₹${promo.discount_value} Off`}
                     </Text>
@@ -641,7 +854,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
         ) : (
           <View style={styles.addItemCard}>
             <Text style={styles.sectionTitle}>⚙️ Store Kitchen Settings</Text>
-            
+
             {kitchenLocation ? (
               <View style={{ backgroundColor: '#EEF2F6', borderRadius: 8, padding: 12, marginBottom: 16 }}>
                 <Text style={{ fontWeight: 'bold', color: '#1E293B', fontSize: 14 }}>Active Kitchen Location:</Text>
@@ -649,7 +862,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
                 <Text style={{ color: '#64748B', fontSize: 11, marginTop: 2 }}>GPS: {kitchenLocation.latitude}, {kitchenLocation.longitude}</Text>
               </View>
             ) : (
-              <ActivityIndicator color="#4F46E5" style={{ marginVertical: 10 }} />
+              <Loader size="small" color="#4F46E5" />
             )}
 
             <Text style={{ fontSize: 14, color: '#111827', marginBottom: 12, fontWeight: '700' }}>
@@ -669,10 +882,39 @@ export const OwnerDashboard = ({ navigation }: any) => {
                 }}
               />
             ) : (
-              <View style={{ padding: 20, backgroundColor: '#F9FAFB', borderRadius: 8, marginBottom: 16, alignItems: 'center' }}>
-                <Text style={{ color: '#64748B', textAlign: 'center', fontSize: 13 }}>
-                  Interactive Map picker is available on Web.
-                </Text>
+              <View style={{ width: '100%', height: 420, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 16 }}>
+                <WebView
+                  source={{ uri: 'https://food-delivery-app-beta-wheat.vercel.app/map-picker.html' }}
+                  style={{ flex: 1 }}
+                  onMessage={async (event) => {
+                    try {
+                      const data = JSON.parse(event.nativeEvent.data);
+                      if (data && data.type === 'LOCATION_SELECTED') {
+                        console.log('[Map WebView] Received coordinates:', data.address, data.latitude, data.longitude);
+                        setUpdatingLocation(true);
+                        const res = await fetch(`${BACKEND}/api/kitchen`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                          body: JSON.stringify({
+                            address: data.address,
+                            latitude: data.latitude,
+                            longitude: data.longitude,
+                          }),
+                        });
+
+                        if (res.ok) {
+                          await fetchKitchenLocation();
+                          Alert.alert('Success', `Kitchen location updated to: ${data.address}`);
+                        } else {
+                          Alert.alert('Error', 'Failed to save location in database');
+                        }
+                        setUpdatingLocation(false);
+                      }
+                    } catch (e) {
+                      // Ignore
+                    }
+                  }}
+                />
               </View>
             )}
 
@@ -682,6 +924,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
             <TextInput
               style={styles.input}
               placeholder="e.g. Raj Nagar, Ghaziabad"
+              placeholderTextColor="#888888"
               value={kitchenAddress}
               onChangeText={setKitchenAddress}
             />

@@ -14,65 +14,63 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 
-const T = {
-  bg: '#F5F6FA',
-  surface: '#FFFFFF',
-  accent: '#FF6B35', // Brand Orange
-  accentBg: '#FFF4F1',
-  dark: '#1C1C2E',
-  text: '#111111',
-  sub: '#9CA3AF',
-  border: '#F0F0F5',
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Responsive spacing helper matching Home screen
+const BASE = SCREEN_WIDTH / 390; // Design base is 390px wide (iPhone 14 Pro)
+const r = (size: number) => Math.round(size * BASE);
+
+const COLORS = {
+  bg: '#FFFFFF',
+  card: '#FFFFFF',
+  orange: '#f49851',
+  orangeLight: '#F4A56A',
+  text: '#1A1A1A',
+  subText: '#888888',
 };
 
-const { width: SW } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
-const LAYOUT_MAX_W = 600;
-const ACTUAL_LAYOUT_W = isWeb ? Math.min(SW, LAYOUT_MAX_W) : SW;
-const CARD_W = Math.floor((ACTUAL_LAYOUT_W - 48) / 2);
-
-const shadow = (elevation = 4) =>
-  Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: elevation * 2,
-      shadowOffset: { width: 0, height: elevation / 2 },
-    },
-    android: { elevation },
-    default: {},
-  });
-
 const getDishImage = (name: string) => {
-  const n = name.toLowerCase();
+  const n = (name || '').toLowerCase();
   if (n.includes('burger')) return require('../../assets/burger.png');
-  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.jpg');
+  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.png');
   if (n.includes('fries') || n.includes('french')) return require('../../assets/fries.png');
   if (n.includes('coffee') || n.includes('drink') || n.includes('tea') || n.includes('shake') || n.includes('smoothie')) return require('../../assets/drinks.png');
-  return require('../../assets/burger.png'); // default fallback
+  return require('../../assets/burger.png');
 };
 
 export const CustomerFavoritesScreen = ({
-  menuItems,
-  liked,
+  menuItems = [],
+  cart = [],
+  liked = {},
   toggleLike,
   handleAddToCart,
+  handleUpdateQty,
   navigation,
 }: any) => {
   const favoriteItems = menuItems.filter((f: any) => liked[f.id]);
 
+  const getCartQty = (menuItemId: string) => {
+    const found = cart.find((c: any) => c.id === menuItemId);
+    return found ? found.quantity : 0;
+  };
+
+  // Compute card width exactly like CustomerHomeScreen: 2 cards per row with responsive padding & gaps
+  const horizontalPadding = r(16) * 2;
+  const foodGaps = r(12);
+  const foodCardWidth = (SCREEN_WIDTH - horizontalPadding - foodGaps) / 2;
+
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F6FA" />
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header Container */}
-      <View style={s.header}>
+      <View style={styles.header}>
         <View>
-          <Text style={s.tabTitle}>My Favorites</Text>
-          <Text style={s.tabSub}>Loved food collections</Text>
+          <Text style={styles.tabTitle}>My Favorites</Text>
+          <Text style={styles.tabSub}>Your curated loved selections</Text>
         </View>
-        <View style={s.countBadge}>
-          <Text style={s.countText}>
+        <View style={styles.countBadge}>
+          <Text style={styles.countText}>
             {favoriteItems.length} {favoriteItems.length === 1 ? 'Item' : 'Items'}
           </Text>
         </View>
@@ -80,232 +78,328 @@ export const CustomerFavoritesScreen = ({
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.scrollContent}
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scroll}
       >
-        <View style={s.foodGrid}>
-          {favoriteItems.map((item: any) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[s.fcard, { width: CARD_W }]}
-              activeOpacity={0.9}
-              onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-            >
-              <View style={s.fcardImg}>
-                <Image source={getDishImage(item.name)} style={s.fcardImage} />
-                <TouchableOpacity
-                  style={s.likeBtn}
-                  onPress={() => toggleLike(item.id)}
-                  activeOpacity={0.8}
-                >
-                  <View style={s.heartIconWrap}>
-                    <Ionicons name="heart" size={18} color="#EF4444" />
+        <View style={styles.foodGrid}>
+          {favoriteItems.map((item: any) => {
+            const cartQty = getCartQty(item.id);
+            const cartItem = cart.find((c: any) => c.id === item.id);
+
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.fcard, { width: foodCardWidth }]}
+                activeOpacity={0.95}
+                onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+              >
+                <View style={styles.fcardImgBox}>
+                  <Image source={getDishImage(item.name)} style={styles.fcardImg} />
+
+                  {/* Dynamic Top-Right Add/Quantity Control */}
+                  <View style={styles.topRightControl}>
+                    {cartQty > 0 ? (
+                      <View style={styles.premiumQtyPill}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (cartItem && handleUpdateQty) {
+                              handleUpdateQty(cartItem.cart_item_id || cartItem.id, cartItem.quantity, false);
+                            }
+                          }}
+                          style={styles.pillQtyBtn}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.pillQtyText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.pillQtyNum}>{cartQty}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleAddToCart && handleAddToCart(item)}
+                          style={styles.pillQtyBtn}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.pillQtyText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.addBtnTopRight}
+                        onPress={() => handleAddToCart && handleAddToCart(item)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.addBtnTxt}>+</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                </TouchableOpacity>
-              </View>
-              <View style={s.fcardBody}>
-                <Text style={s.fcardName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <View style={s.fcardFoot}>
-                  <Text style={s.fcardPrice}>₹{item.price}</Text>
+
+                  {/* Favorite / Like Heart Button */}
                   <TouchableOpacity
-                    style={s.addBtn}
-                    onPress={() => handleAddToCart(item)}
+                    style={styles.likeBtn}
+                    onPress={() => toggleLike && toggleLike(item.id)}
                     activeOpacity={0.8}
                   >
-                    <Feather name="plus" size={16} color="#FFFFFF" />
+                    <Ionicons
+                      name="heart"
+                      size={20}
+                      color={COLORS.orange}
+                    />
                   </TouchableOpacity>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
 
-        {favoriteItems.length === 0 && (
-          <View style={s.emptyContainer}>
-            <View style={s.emptyIconCircle}>
-              <Ionicons name="heart-outline" size={48} color="#FF6B35" />
+                <View style={styles.fcardBody}>
+                  <Text style={styles.fcardName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.fcardPrice}>₹{item.price}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          {favoriteItems.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="heart-outline" size={48} color={COLORS.orange} />
+              </View>
+              <Text style={styles.emptyTitle}>Liked items will appear here ❤️</Text>
+              <Text style={styles.emptySubtitle}>
+                Tap the heart icon on any food item to save your absolute favorites here for easy access!
+              </Text>
+              <TouchableOpacity
+                style={styles.exploreBtn}
+                onPress={() => navigation.navigate('Home')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.exploreBtnText}>Browse Delicious Food</Text>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
             </View>
-            <Text style={s.emptyTitle}>Liked items will appear here ❤️</Text>
-            <Text style={s.emptySubtitle}>
-              Tap the heart icon on any food item to save your absolute favorites here for easy access!
-            </Text>
-            <TouchableOpacity
-              style={s.exploreBtn}
-              onPress={() => navigation.navigate('Home')}
-              activeOpacity={0.8}
-            >
-              <Text style={s.exploreBtnText}>Browse Delicious Food</Text>
-              <Feather name="arrow-right" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
-          </View>
-        )}
-        <View style={{ height: 40 }} />
+          )}
+        </View>
+        <View style={{ height: r(40) }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#FFFFFF',
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: '#F5F6FA',
+    paddingHorizontal: r(16),
+    paddingTop: r(16),
+    paddingBottom: r(12),
+    backgroundColor: '#FFFFFF',
   },
   tabTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#1C1C2E',
+    fontSize: r(24),
+    fontFamily: 'Lora_700Bold',
+    color: '#1A1A1A',
     letterSpacing: -0.5,
   },
   tabSub: {
-    fontSize: 13,
-    color: '#8E8E93',
-    marginTop: 2,
+    fontSize: r(13),
+    color: '#FFFFFF',
+    marginTop: r(2),
+    fontFamily: 'Poppins_500Medium',
   },
   countBadge: {
-    backgroundColor: '#FFF4F1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: '#FFF4EE',
+    paddingHorizontal: r(12),
+    paddingVertical: r(6),
+    borderRadius: r(20),
     borderWidth: 1,
-    borderColor: '#FFE0D6',
+    borderColor: '#FEE5D4',
   },
   countText: {
-    fontSize: 12,
+    fontSize: r(12),
     fontWeight: '700',
-    color: '#FF6B35',
+    color: COLORS.orange,
+    fontFamily: 'Poppins_500Medium',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 40,
+    paddingHorizontal: r(16),
+    paddingTop: r(8),
+    paddingBottom: r(40),
   },
   foodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: r(12),
     justifyContent: 'space-between',
+    width: '100%',
   },
   fcard: {
-    backgroundColor: T.surface,
-    borderRadius: 24,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
-    ...shadow(4),
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#F0F0F5',
+    marginBottom: r(12),
   },
-  fcardImg: {
+  fcardImgBox: {
     width: '100%',
-    aspectRatio: 1.15,
+    aspectRatio: 1.05,
+    backgroundColor: '#FFF4EE',
+    borderRadius: r(16),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FB',
-    borderRadius: 18,
     position: 'relative',
   },
-  fcardImage: {
+  fcardImg: {
     width: '80%',
     height: '80%',
     resizeMode: 'contain',
   },
   likeBtn: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: r(8),
+    left: r(8),
+    width: r(26),
+    height: r(26),
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 10,
   },
-  heartIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadow(2),
-  },
   fcardBody: {
-    paddingTop: 10,
-    paddingHorizontal: 6,
-    paddingBottom: 4,
+    paddingTop: r(4),
+    paddingHorizontal: 0,
   },
   fcardName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1C1C2E',
-    marginBottom: 6,
-  },
-  fcardFoot: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    fontSize: r(15),
+    fontFamily: 'Lora_700Bold',
+    color: '#1A1A1A',
+    marginTop: r(6),
+    marginBottom: r(2),
   },
   fcardPrice: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1C1C2E',
+    fontSize: r(13),
+    color: '#888888',
+    fontFamily: 'Poppins_500Medium',
   },
-  addBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FF6B35',
+  topRightControl: {
+    position: 'absolute',
+    top: r(8),
+    right: r(8),
+    zIndex: 20,
+  },
+  addBtnTopRight: {
+    width: r(28),
+    height: r(28),
+    borderRadius: r(14),
+    backgroundColor: COLORS.orange,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow(2),
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  premiumQtyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.orange,
+    borderRadius: r(14),
+    paddingHorizontal: r(6),
+    height: r(28),
+    gap: r(4),
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  pillQtyBtn: {
+    width: r(18),
+    height: r(18),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillQtyText: {
+    color: '#FFFFFF',
+    fontSize: r(13),
+    fontWeight: '700',
+  },
+  pillQtyNum: {
+    color: '#FFFFFF',
+    fontSize: r(11),
+    fontWeight: '700',
+    minWidth: r(14),
+    textAlign: 'center',
+  },
+  addBtnTxt: {
+    fontSize: r(18),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: -r(2),
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 24,
+    paddingVertical: r(60),
+    paddingHorizontal: r(24),
+    width: '100%',
   },
   emptyIconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFF4F1',
+    width: r(100),
+    height: r(100),
+    borderRadius: r(50),
+    backgroundColor: '#FFF4EE',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: r(20),
     borderWidth: 2,
-    borderColor: '#FFE0D6',
+    borderColor: '#FEE5D4',
     borderStyle: 'dashed',
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: r(18),
     fontWeight: '800',
-    color: '#1C1C2E',
-    marginBottom: 8,
+    color: '#1A1A1A',
+    marginBottom: r(8),
+    fontFamily: 'Lora_700Bold',
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: '#8E8E93',
+    fontSize: r(13),
+    color: '#888888',
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 24,
+    lineHeight: r(18),
+    marginBottom: r(24),
+    fontFamily: 'Poppins_500Medium',
   },
   exploreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    ...shadow(3),
+    backgroundColor: COLORS.orange,
+    paddingHorizontal: r(20),
+    paddingVertical: r(12),
+    borderRadius: r(24),
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      },
+      android: { elevation: 2 },
+    }),
   },
   exploreBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: r(14),
+    fontFamily: 'Poppins_500Medium',
   },
 });

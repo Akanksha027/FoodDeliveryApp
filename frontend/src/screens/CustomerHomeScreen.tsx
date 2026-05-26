@@ -1,146 +1,236 @@
-// src/screens/CustomerHomeScreen.tsx
 import React from 'react';
 import {
   View,
   Text,
   ScrollView,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
+  StatusBar,
+  Platform,
   TextInput,
   Image,
-  Dimensions,
-  Platform,
-  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
-const T = {
-  bg: '#F5F6FA',
-  surface: '#FFFFFF',
-  accent: '#FF5A30',
-  accentBg: '#FFF4F1',
-  dark: '#1C1C2E',
-  text: '#111111',
-  sub: '#9CA3AF',
-  star: '#FBBF24',
-  green: '#16A34A',
-  greenBg: '#F0FDF4',
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Responsive spacing helper
+const BASE = SCREEN_WIDTH / 390; // Design base is 390px wide (iPhone 14 Pro)
+const r = (size: number) => Math.round(size * BASE);
+
+// ─── Color palette from the design ────────────────────────────────────────────
+const COLORS = {
+  bg: '#FFFFFF',            // white background
+  card: '#FFFFFF',
+  orange: '#f49851',        // primary orange
+  orangeLight: '#F4A56A',
+  red: '#D94F38',
+  green: '#4CAF50',
+  star: '#F5A623',
+  text: '#1A1A1A',
+  subText: '#888888',
+  specialBg: '#fef3ea',     // warm beige for specials card
+  cookieBg: '#fef3ea',      // warm brown for cookies
+  drinksBg: '#C8D8E8',      // light blue for drinks
+  dessertBg: '#C4956A',     // caramel brown
+  pizzaBg: '#fef3ea',       // terracotta
+  saladBg: '#2D4A3A',       // dark green
+  burgerBg: '#DCA080',      // warm peachy tan
+  friesBg: '#E2CFA5',       // golden sand
+  mainBg: '#708C82',        // premium dark sage green
+  navBg: '#FFFFFF',
+  placeholderBorder: '#E0D0C0',
+  placeBg1: '#D4C4B0',      // restaurant 1 placeholder
+  placeBg2: '#8CA0B0',      // restaurant 2 placeholder
+  bestPrice1: '#F0D0D8',    // pink
+  bestPrice2: '#F0E8D0',    // cream
+  bestPrice3: '#E8D0C0',    // peach
 };
 
-const CATEGORIES = [
-  { id: 'burger', label: 'Food', image: require('../../assets/burger.png') },
-  { id: 'pizza', label: 'Groceries', image: require('../../assets/pizza.jpg') },
-  { id: 'fries', label: 'Stores', image: require('../../assets/fries.png') },
-  { id: 'drink', label: 'Drink', image: require('../../assets/drinks.png') },
-];
-
-const RESTAURANTS = [
-  { id: '1', name: 'Burger Palace', type: 'Burgers & Snacks', rating: '4.9', time: '15–20 min', emoji: '🍔', freeDelivery: true },
-  { id: '2', name: 'Pizzeria Roma', type: 'Pizza & Pasta', rating: '4.8', time: '20–30 min', emoji: '🍕', freeDelivery: false },
-  { id: '3', name: 'Tokyo Garden', type: 'Japanese Cuisine', rating: '4.9', time: '25–35 min', emoji: '🍣', freeDelivery: true },
-  { id: '4', name: 'Fresh Squeeze', type: 'Drinks & Bowls', rating: '4.7', time: '10–15 min', emoji: '🥤', freeDelivery: false },
-];
-
-const { width: SW } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
-const LAYOUT_MAX_W = 600;
-const ACTUAL_LAYOUT_W = isWeb ? Math.min(SW, LAYOUT_MAX_W) : SW;
-const CARD_W = Math.floor((ACTUAL_LAYOUT_W - 48) / 2);
-
-const shadow = (elevation = 4) =>
-  Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: elevation * 2,
-      shadowOffset: { width: 0, height: elevation / 2 },
-    },
-    android: { elevation },
-    default: {},
-  });
-
-const getDishImage = (name: string) => {
+const getDishImage = (name?: string) => {
+  if (!name) {
+    return require('../../assets/burger.png');
+  }
   const n = name.toLowerCase();
   if (n.includes('burger')) return require('../../assets/burger.png');
-  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.jpg');
+  if (n.includes('pizza') || n.includes('pasta') || n.includes('arrabiata')) return require('../../assets/pizza.png');
   if (n.includes('fries') || n.includes('french')) return require('../../assets/fries.png');
-  if (n.includes('coffee') || n.includes('drink') || n.includes('tea') || n.includes('shake') || n.includes('smoothie')) return require('../../assets/drinks.png');
+  if (n.includes('coffee') || n.includes('drink') || n.includes('tea') || n.includes('shake') || n.includes('smoothie') || n.includes('beverage')) return require('../../assets/drinks.png');
+  if (n.includes('cookie') || n.includes('sweet') || n.includes('dessert') || n.includes('cake') || n.includes('brownie')) return require('../../assets/fries.png');
+  if (n.includes('sandwich') || n.includes('bread') || n.includes('toast') || n.includes('panini')) return require('../../assets/burger.png');
   return require('../../assets/burger.png');
 };
 
-const CategoryPill = ({ item, selected, onPress }: any) => (
-  <TouchableOpacity
-    style={[s.pill, selected && s.pillSelected]}
-    onPress={onPress}
-    activeOpacity={0.75}
-  >
-    <Image source={item.image} style={s.pillImage} />
-    <Text style={[s.pillText, selected && s.pillTextSelected]}>
-      {item.label}
-    </Text>
+const getCatImage = (id?: string) => {
+  if (!id) {
+    return require('../../assets/burger.png');
+  }
+  const lowId = id.toLowerCase();
+  if (lowId === 'specials') return require('../../assets/burger.png');
+  if (lowId.includes('burger')) return require('../../assets/homeBurger.png');
+  if (lowId.includes('pizza')) return require('../../assets/pizza.png');
+  if (lowId.includes('fries') || lowId.includes('side') || lowId.includes('snack')) return require('../../assets/fries.png');
+  if (lowId.includes('drink') || lowId.includes('beverage') || lowId.includes('coffee') || lowId.includes('tea') || lowId.includes('shake')) return require('../../assets/drinks.png');
+  if (lowId.includes('cookie') || lowId.includes('sweet') || lowId.includes('dessert') || lowId.includes('cake') || lowId.includes('bakery')) return require('../../assets/fries.png');
+  if (lowId.includes('sandwich') || lowId.includes('bread') || lowId.includes('toast') || lowId.includes('panini')) return require('../../assets/homeBurger.png');
+  return require('../../assets/burger.png');
+};
+
+// ─── Sub-Components with explicit TS typing ────────────────────────────────────
+
+const SpecialBadge = ({ label, color }: { label: string; color: string }) => (
+  <View style={[styles.badge, { backgroundColor: color }]}>
+    <Text style={styles.badgeText}>{label}</Text>
+  </View>
+);
+
+const CategoryCard = ({
+  item,
+  size,
+  selected,
+  onPress,
+}: {
+  item: any;
+  size: number;
+  selected: boolean;
+  onPress: () => void;
+}) => {
+  const cardSize = size || r(114);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={[
+        styles.categoryCard,
+        {
+          backgroundColor: item.bg,
+          width: cardSize,
+          height: r(90),
+        },
+        item.special && styles.specialCard,
+        selected && styles.categoryCardSelected,
+      ]}
+    >
+      {item.special ? (
+        <>
+          <Text style={[styles.categoryLabel, { color: '#5C3A1E', fontSize: r(11), lineHeight: r(15) }]}>
+            {item.label}
+          </Text>
+          <View style={styles.badgesRow}>
+            {item.accentColors.map((color: string, i: number) => (
+              <SpecialBadge key={i} label={item.accentLabels[i]} color={color} />
+            ))}
+          </View>
+        </>
+      ) : (
+        <>
+          <Image source={getCatImage(item.id)} style={styles.categoryImage} />
+          <Text style={[styles.categoryLabel, item.lightText && { color: '#FFFFFF' }]}>
+            {item.label}
+          </Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const PlaceCard = ({ item }: { item: any }) => (
+  <TouchableOpacity activeOpacity={0.85} style={styles.placeCard}>
+    <View style={styles.placeImageContainer}>
+      <Image source={getDishImage(item.cuisine)} style={styles.placeImage} />
+    </View>
+    <View style={styles.placeInfo}>
+      <View style={styles.placeRow}>
+        <Text style={styles.placeName} numberOfLines={1}>{item.name}</Text>
+        {item.rating && (
+          <View style={styles.ratingRow}>
+            <Text style={styles.ratingStar}>★</Text>
+            <Text style={styles.ratingText}>{item.rating}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.placeSub}>{item.cuisine} • {item.time}</Text>
+    </View>
   </TouchableOpacity>
 );
 
-const FoodCard = ({ item, cartQty, cartItem, onAddToCart, onUpdateQty, isLiked, onToggleLike }: any) => {
-  const cardWidth = ACTUAL_LAYOUT_W * 0.65;
+const FoodGridCard = ({
+  item,
+  cartQty,
+  cartItem,
+  onAddToCart,
+  onUpdateQty,
+  isLiked,
+  onToggleLike,
+  onPress,
+  width,
+}: any) => (
+  <TouchableOpacity
+    style={[styles.fcard, { width }]}
+    activeOpacity={0.95}
+    onPress={onPress}
+  >
+    <View style={styles.fcardImgBox}>
+      <Image source={getDishImage(item.name)} style={styles.fcardImg} />
 
-  return (
-    <View style={[s.card, { width: cardWidth }]}>
-      {/* Card background - dark left section */}
-      <View style={s.cardLeft}>
-
-
-
-        {/* Name and price */}
-        <View style={s.cardContent}>
-          <Text style={s.cardName}>{item.name}</Text>
-          <Text style={s.cardPrice}>₹{item.price}</Text>
-          <View style={s.specialOffer}>
-            <Text style={s.specialOfferIcon}>⚡</Text>
-            <Text style={s.specialOfferText}>Special offers</Text>
-          </View>
-          <Text style={s.discountText}>25% Off Prices</Text>
-        </View>
-
-        {/* Cart button */}
+      {/* Dynamic Top-Right Add/Quantity Control */}
+      <View style={styles.topRightControl}>
         {cartQty > 0 ? (
-          <View style={s.popularQtyControl}>
-            <TouchableOpacity style={s.popularSmallBtn} onPress={() => onUpdateQty(cartItem?.cart_item_id, cartItem?.quantity, false)}>
-              <Text style={s.popularSmallBtnText}>−</Text>
+          <View style={styles.premiumQtyPill}>
+            <TouchableOpacity
+              onPress={() => {
+                if (cartItem) onUpdateQty(cartItem.cart_item_id, cartItem.quantity, false);
+              }}
+              style={styles.pillQtyBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pillQtyText}>−</Text>
             </TouchableOpacity>
-            <Text style={s.popularQtyText}>{cartQty}</Text>
-            <TouchableOpacity style={s.popularSmallBtn} onPress={() => onUpdateQty(cartItem?.cart_item_id, cartItem?.quantity, true)}>
-              <Text style={s.popularSmallBtnText}>+</Text>
+            <Text style={styles.pillQtyNum}>{cartQty}</Text>
+            <TouchableOpacity
+              onPress={() => onAddToCart(item)}
+              style={styles.pillQtyBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pillQtyText}>+</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={s.cartCircleBtn} activeOpacity={0.85} onPress={() => onAddToCart(item)}>
-            <Text style={s.cartCircleBtnText}>🛒</Text>
+          <TouchableOpacity
+            style={styles.addBtnTopRight}
+            onPress={() => onAddToCart(item)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.addBtnTxt}>+</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Food image - overlapping right side */}
-      <View style={s.cardImageContainer}>
-        <Image source={getDishImage(item.name)} style={s.cardImage} />
-
-        {/* Heart button */}
-        <TouchableOpacity
-          style={[s.heartBtn, isLiked && s.heartBtnActive]}
-          onPress={() => onToggleLike(item.id)}
-          activeOpacity={0.8}
-        >
-          <Text style={s.heartIcon}>{isLiked ? '❤️' : '🤍'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Rating top right */}
-
+      {/* Favorite / Like Heart Button */}
+      <TouchableOpacity
+        style={styles.likeBtn}
+        onPress={() => onToggleLike(item.id)}
+        activeOpacity={0.8}
+      >
+        <Ionicons
+          name={isLiked ? "heart" : "heart-outline"}
+          size={20}
+          color={COLORS.orange}
+        />
+      </TouchableOpacity>
     </View>
-  );
-};
 
+    <View style={styles.fcardBody}>
+      <Text style={styles.fcardName} numberOfLines={1}>{item.name}</Text>
+      <Text style={styles.fcardPrice}>₹{item.price}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+// ─── Main HomeScreen Component (Named Export) ──────────────────────────────────
 export const CustomerHomeScreen = ({
   menuItems,
   cart,
@@ -159,758 +249,615 @@ export const CustomerHomeScreen = ({
   setActiveNav,
   cartCount,
   navigation,
+  recommendedPlaces,
 }: any) => {
   const insets = useSafeAreaInsets();
 
+  const dynamicCategories = React.useMemo(() => {
+    const list: any[] = [
+      {
+        id: 'specials',
+        label: 'Specials\nof the week',
+        bg: '#fff2e0',
+        special: true,
+        accentColors: ['#F5A623', '#f49851', '#D94F38'],
+        accentLabels: ['-50%', '-75%', '-39%'],
+      }
+    ];
+
+    const uniqueFromDb = new Set<string>();
+    if (Array.isArray(menuItems)) {
+      menuItems.forEach((item: any) => {
+        if (item.category) {
+          const cat = item.category.trim();
+          if (cat) {
+            uniqueFromDb.add(cat.toLowerCase());
+          }
+        }
+      });
+    }
+
+    const knownCategories = [
+      { id: 'burger', label: 'Burgers', bg: '#fef3ea' },
+      { id: 'pizza', label: 'Pizza', bg: '#fef3ea' },
+      { id: 'fries', label: 'Fries', bg: '#fef3ea' },
+      { id: 'drink', label: 'Drinks', bg: '#fef3ea' },
+      { id: 'cookies', label: 'Cookies', bg: '#fef3ea' },
+      { id: 'desserts', label: 'Desserts', bg: '#fef3ea' },
+      { id: 'sandwich', label: 'Sandwiches', bg: '#fef3ea' },
+      { id: 'salad', label: 'Salads', bg: '#fef3ea' },
+    ];
+
+    uniqueFromDb.forEach(catId => {
+      const known = knownCategories.find(k => k.id === catId || k.id + 's' === catId || k.id === catId + 's');
+      if (known) {
+        if (!list.some(x => x.id === known.id)) {
+          list.push(known);
+        }
+      } else {
+        const label = catId.charAt(0).toUpperCase() + catId.slice(1);
+        list.push({
+          id: catId,
+          label: label,
+          bg: '#fef3ea'
+        });
+      }
+    });
+
+    if (list.length === 1) {
+      list.push(
+        { id: 'cookies', label: 'Cookies', bg: '#fef3ea' },
+        { id: 'burger', label: 'Burgers', bg: '#fef3ea' },
+        { id: 'drink', label: 'Drinks', bg: '#fef3ea' },
+        { id: 'desserts', label: 'Desserts', bg: '#fef3ea' },
+        { id: 'fries', label: 'Fries', bg: '#fef3ea' }
+      );
+    }
+
+    return list;
+  }, [menuItems]);
+
+  const places = recommendedPlaces ?? [
+    {
+      id: 1,
+      name: 'Sundown café',
+      cuisine: 'Italian food',
+      time: '60 min',
+      rating: '4.9',
+      bg: COLORS.placeBg1,
+    },
+    {
+      id: 2,
+      name: 'The cozy cup',
+      cuisine: 'Breakfast, coffee',
+      time: '35 min',
+      rating: '4.7',
+      bg: COLORS.placeBg2,
+    },
+    {
+      id: 3,
+      name: 'Burger Palace',
+      cuisine: 'Burgers & Snacks',
+      time: '20 min',
+      rating: '4.8',
+      bg: COLORS.placeBg1,
+    },
+  ];
+
+  // Compute card width: 3 categories per row with padding and gaps
+  const horizontalPadding = r(16) * 2;
+  const categoryGaps = r(10) * 2;
+  const categoryCardWidth = Math.floor((SCREEN_WIDTH - horizontalPadding - categoryGaps) / 3) - 2;
+
+  // Compute food card width: 2 cards per row
+  const foodGaps = r(12);
+  const foodCardWidth = (SCREEN_WIDTH - horizontalPadding - foodGaps) / 2;
+
   return (
-    <View style={[s.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={T.bg} />
+    <View style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
+
       <ScrollView
-        style={s.scroll}
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top, paddingBottom: insets.bottom + r(40) }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.scrollContent}
       >
         {/* ── Header ── */}
-        <View style={s.foodHomeHeader}>
+        <View style={styles.header}>
           <TouchableOpacity
-            style={s.locationRow}
-            activeOpacity={0.7}
+            style={styles.locationRow}
+            activeOpacity={0.8}
             onPress={() => setLocationState('requesting')}
           >
-            <Image source={require('../../assets/navigation.png')} style={s.locationIconImg} resizeMode="contain" />
-            <View>
-              <Text style={s.deliverToLabel}>Deliver to</Text>
-              <View style={s.locationAddressRow}>
-                <Text style={s.locationText} numberOfLines={1}>
-                  {detectedLocation?.address || 'Set Location'}
-                </Text>
-                <Text style={s.chevron}>▾</Text>
-              </View>
+            <View style={styles.locAddrRow}>
+              <Text style={styles.locationText} numberOfLines={1}>
+                {detectedLocation?.address ?? 'Set Location'}
+              </Text>
+              <Text style={styles.locationChevron}>∨</Text>
             </View>
           </TouchableOpacity>
-
-          <View style={s.headerRight}>
-            <TouchableOpacity style={s.iconBtn} activeOpacity={0.75}>
-              <Text style={s.iconBtnEmoji}>🔔</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.iconBtn} activeOpacity={0.75} onPress={() => setActiveNav('cart')}>
-              <Image source={require('../../assets/tabs/cart.png')} style={s.heartCircleIconImg} resizeMode="contain" />
-              {cartCount > 0 && <View style={s.notifPip} />}
-            </TouchableOpacity>
-          </View>
         </View>
 
-        {/* ── Headline ── */}
-        <View style={s.headlineContainer}>
-          <Text style={s.headline}>
-            <Text style={s.headlineLight}>What's </Text>
-            <Text style={s.headlineBold}>Your Craving</Text>
-            {'\n'}
-            <Text style={s.headlineLight}>Today?</Text>
-            <Text style={s.headlineEmoji}> 🎯</Text>
-          </Text>
-        </View>
-
-        {/* ── Search ── */}
-        <View style={s.searchRow}>
-          <View style={s.searchBar}>
-            <Image source={require('../../assets/search.png')} style={s.searchIconImg} resizeMode="contain" />
-            <TextInput
-              style={s.searchInput}
-              placeholder="Search for food or restaurants..."
-              placeholderTextColor="#aaa"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <TouchableOpacity style={s.filterBtn} activeOpacity={0.8}>
-            <Text style={s.filterBtnText}>⚙️</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Categories ── */}
-        <View style={s.categoryHeader}>
-          <Text style={s.categoryTitle}>Category</Text>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={s.seeAllText}>See all ›</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.categoryRow}
-        >
-          {CATEGORIES.filter(c => c.id !== 'fries').map(cat => (
-            <CategoryPill
-              key={cat.id}
-              item={cat}
-              selected={activeCategory === cat.id}
-              onPress={() => setActiveCategory((prev: any) => prev === cat.id ? '' : cat.id)}
-            />
-          ))}
-        </ScrollView>
-
-        {/* ── Popular Food (Only visible when not searching or filtering) ── */}
-        {!searchQuery && !activeCategory && (
+        {/* ── Category Grid – 3 per row (Shown only when not searching) ── */}
+        {!searchQuery && (
           <>
-            <FlatList
-              data={menuItems.slice(0, 4)}
-              keyExtractor={i => i.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.cardList}
-              renderItem={({ item }) => (
-                <FoodCard
+
+            <View style={styles.categoryGrid}>
+              {dynamicCategories.map((item) => (
+                <CategoryCard
+                  key={item.id}
                   item={item}
-                  cartQty={getCartQty(item.id)}
-                  cartItem={cart.find((c: any) => c.id === item.id)}
-                  onAddToCart={handleAddToCart}
-                  onUpdateQty={handleUpdateQty}
-                  isLiked={liked[item.id]}
-                  onToggleLike={toggleLike}
+                  size={categoryCardWidth}
+                  selected={activeCategory === item.id}
+                  onPress={() => setActiveCategory((prev: any) => (prev === item.id ? '' : item.id))}
                 />
-              )}
-              snapToInterval={ACTUAL_LAYOUT_W * 0.65 + 16}
-              decelerationRate="fast"
-            />
+              ))}
+            </View>
           </>
         )}
 
-        {/* Menu Items Grid */}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>
-            {searchQuery || activeCategory ? 'Search Results' : 'Menu'}
+        {/* ── Places Section (Shown only when not searching/filtering) ── */}
+        {!searchQuery && !activeCategory && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Popular Food</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.placesRow}
+            >
+              {places.map((place: any) => (
+                <PlaceCard key={place.id} item={place} />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* ── Main Menu / Search Results Section ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {searchQuery || activeCategory ? 'Search Results' : 'Main Menu'}
           </Text>
-          <Text style={s.seeAll}>Our Dishes</Text>
         </View>
 
-        <View style={s.foodGrid}>
+        {/* Dynamic Vertical Grid – 1 row 2 column format displaying all items */}
+        <View style={styles.foodGrid}>
           {filteredFoods.map((item: any) => (
-            <TouchableOpacity
+            <FoodGridCard
               key={item.id}
-              style={[s.fcard, { width: CARD_W }]}
-              activeOpacity={0.9}
+              item={item}
+              width={foodCardWidth}
+              cartQty={getCartQty(item.id)}
+              cartItem={cart.find((c: any) => c.id === item.id)}
+              onAddToCart={handleAddToCart}
+              onUpdateQty={handleUpdateQty}
+              isLiked={liked[item.id]}
+              onToggleLike={toggleLike}
               onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-            >
-              <View style={s.fcardImg}>
-                <Image source={getDishImage(item.name)} style={s.fcardImage} />
-
-                <TouchableOpacity
-                  style={s.likeBtn}
-                  onPress={() => toggleLike(item.id)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={s.likeTxt}>{liked[item.id] ? '❤️' : '🤍'}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={s.fcardBody}>
-                <Text style={s.fcardName} numberOfLines={1}>{item.name}</Text>
-                <Text style={s.fcardShop} numberOfLines={1}>
-                  {item.description || 'Cooked fresh by top chefs.'}
-                </Text>
-                <View style={s.fcardFoot}>
-                  <Text style={s.fcardPrice}>₹{item.price}</Text>
-
-                  <View style={s.qtyControlRow}>
-                    {getCartQty(item.id) > 0 && (
-                      <>
-                        <TouchableOpacity
-                          style={s.smallQtyBtn}
-                          onPress={() => {
-                            const cartItem = cart.find((c: any) => c.id === item.id);
-                            if (cartItem) handleUpdateQty(cartItem.cart_item_id, cartItem.quantity, false);
-                          }}
-                        >
-                          <Text style={s.smallQtyBtnText}>−</Text>
-                        </TouchableOpacity>
-                        <Text style={s.qtyCardText}>{getCartQty(item.id)}</Text>
-                      </>
-                    )}
-
-                    <TouchableOpacity style={s.addBtn} onPress={() => handleAddToCart(item)} activeOpacity={0.8}>
-                      <Text style={s.addBtnTxt}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
+            />
           ))}
 
           {filteredFoods.length === 0 && (
-            <View style={s.empty}>
-              <Text style={s.emptyTxt}>
-                {searchQuery || activeCategory
-                  ? 'No dishes match your search 🍽'
-                  : 'No dishes available in the kitchen 🍽'}
+            <View style={styles.empty}>
+              <Text style={[styles.emptyTxt, { fontFamily: 'Poppins_500Medium' }]}>
+                {searchQuery || activeCategory ? 'No dishes match your search 🍽' : 'No dishes available 🍽'}
               </Text>
             </View>
           )}
         </View>
-
-        {/* Near You / Big brands restaurant list */}
-
-
-        {/* Bottom padding for nav bar */}
-        <View style={{ height: 24 }} />
       </ScrollView>
     </View>
   );
 };
 
-const s = StyleSheet.create({
-  container: {
+// ─── Styles ────────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  safeArea: {
     flex: 1,
-    backgroundColor: T.bg,
+    backgroundColor: COLORS.bg,
   },
   scroll: {
     flex: 1,
+    backgroundColor: COLORS.bg,
   },
   scrollContent: {
-    paddingBottom: 8,
+    paddingBottom: r(10),
   },
 
-  // ── Header ──
-  foodHomeHeader: {
+  // Header
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: T.bg,
+    paddingHorizontal: r(16),
+    paddingTop: r(4),
+    paddingBottom: r(28),
+    width: '100%',
   },
   locationRow: {
+    flex: 1,
+  },
+  locAddrRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  locationIconImg: {
-    width: 20,
-    height: 20,
-    tintColor: T.accent,
-  },
-  deliverToLabel: {
-    fontSize: 11,
-    color: T.sub,
-    fontWeight: '500',
-  },
-  locationAddressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
+    width: '100%',
   },
   locationText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: T.text,
-    maxWidth: 180,
+    fontSize: r(24),
+    fontFamily: 'Lora_400Regular',
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
+    maxWidth: r(300),
   },
-  chevron: {
-    fontSize: 12,
-    color: T.text,
-    fontWeight: '700',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: T.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.07,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  iconBtnEmoji: {
-    fontSize: 18,
-  },
-  heartCircleIconImg: {
-    width: 22,
-    height: 22,
-  },
-  notifPip: {
-    position: 'absolute', top: 7, right: 7,
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: T.accent,
-    borderWidth: 1.5, borderColor: T.surface,
-  },
-
-  // ── Headline ──
-  headlineContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 18,
-  },
-  headline: {
-    lineHeight: 38,
-  },
-  headlineLight: {
-    fontSize: 28,
+  locationChevron: {
+    fontSize: r(20),
+    color: '#1A1A1A',
     fontWeight: '400',
-    color: T.text,
-  },
-  headlineBold: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: T.text,
-  },
-  headlineEmoji: {
-    fontSize: 24,
   },
 
-  // ── Search ──
-  searchRow: {
+
+  // Category Grid
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: r(24),
+    gap: r(2),
+    marginBottom: r(8),
+  },
+  categoryCard: {
+    borderRadius: r(4),
+    overflow: 'hidden',
+    padding: r(8),
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  categoryCardSelected: {
+    borderColor: COLORS.orange,
+  },
+  specialCard: {
+    justifyContent: 'space-between',
+  },
+  categoryImage: {
+    position: 'absolute',
+    bottom: -r(10),
+    right: -r(10),
+    width: r(85),
+    height: r(85),
+    resizeMode: 'contain',
+  },
+  categoryLabel: {
+    fontSize: r(11),
+    fontWeight: '700',
+    color: COLORS.text,
+    lineHeight: r(15),
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: r(3),
+    marginTop: r(4),
+  },
+  badge: {
+    borderRadius: r(10),
+    paddingHorizontal: r(5),
+    paddingVertical: r(2),
+  },
+  badgeText: {
+    fontSize: r(9),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Section Header
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 22,
-    gap: 12,
+    paddingHorizontal: r(16),
+    paddingTop: r(20),
+    paddingBottom: r(12),
+    gap: r(8),
   },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECECEC',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    gap: 10,
+  sectionTitle: {
+    fontSize: r(20),
+    fontWeight: '700',
+    color: COLORS.text,
+    letterSpacing: -0.3,
   },
-  searchIconImg: {
-    width: 17,
-    height: 17,
-    tintColor: '#aaa',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: T.text,
-    padding: 0,
-  },
-  filterBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: T.dark,
+  bestPriceBadge: {
+    backgroundColor: COLORS.green,
+    borderRadius: r(12),
+    width: r(20),
+    height: r(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
-  filterBtnText: {
-    fontSize: 18,
+  bestPriceBadgeText: {
+    color: '#FFFFFF',
+    fontSize: r(11),
+    fontWeight: '700',
   },
 
-  // ── Category ──
-  categoryHeader: {
+  // Places
+  placesRow: {
+    paddingLeft: r(16),
+    paddingRight: r(8),
+    gap: r(12),
+  },
+  placeCard: {
+    width: r(160),
+    backgroundColor: COLORS.card,
+    borderRadius: r(16),
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#EFE6DC',
+  },
+  placeImageContainer: {
+    width: '100%',
+    height: r(100),
+    backgroundColor: '#EEE',
+  },
+  placeImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  placeInfo: {
+    padding: r(8),
+  },
+  placeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: r(2),
   },
-  categoryTitle: {
-    fontSize: 17,
+  placeName: {
+    fontSize: r(13),
     fontWeight: '700',
-    color: T.text,
+    color: COLORS.text,
+    flex: 1,
+    marginRight: r(4),
   },
-  seeAllText: {
-    fontSize: 13,
-    color: T.sub,
-    fontWeight: '500',
-  },
-  categoryRow: {
-    paddingHorizontal: 20,
-    gap: 10,
-    marginBottom: 20,
-  },
-  pill: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: T.surface,
-    borderRadius: 50,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    gap: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 2 },
-    }),
+    gap: r(2),
   },
-  pillSelected: {
-    backgroundColor: T.accent,
+  ratingStar: {
+    fontSize: r(11),
+    color: COLORS.star,
   },
-  pillImage: {
-    width: 28,
-    height: 28,
-    resizeMode: 'contain',
+  ratingText: {
+    fontSize: r(11),
+    fontWeight: '700',
+    color: COLORS.text,
   },
-  pillText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-  },
-  pillTextSelected: {
-    color: '#fff',
+  placeSub: {
+    fontSize: r(10),
+    color: COLORS.subText,
   },
 
-  // ── Popular Food Cards (new design) ──
-  cardList: {
-    paddingHorizontal: 20,
-    gap: 16,
-    marginBottom: 8,
-    paddingBottom: 16,
-  },
-  card: {
-    borderRadius: 22,
-    backgroundColor: T.dark,
+  // Food Grid
+  foodGrid: {
     flexDirection: 'row',
-    overflow: 'visible',
-    height: 180,
+    flexWrap: 'wrap',
+    paddingHorizontal: r(16),
+    gap: r(12),
+    marginBottom: r(8),
+  },
+  fcard: {
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+    marginBottom: r(12),
+  },
+  fcardImgBox: {
+    width: '100%',
+    aspectRatio: 1.05,
+    backgroundColor: '#FFF4EE', // Warm elegant peachy cream matching user image
+    borderRadius: r(16), // Rounded image container
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
+  },
+  fcardImg: {
+    width: '80%',
+    height: '80%',
+    resizeMode: 'contain',
+  },
+  likeBtn: {
+    position: 'absolute',
+    top: r(8),
+    left: r(8),
+    width: r(26),
+    height: r(26),
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  likeTxt: {
+    fontSize: r(15),
+  },
+  fcardBody: {
+    paddingTop: r(4),
+    paddingHorizontal: 0,
+  },
+  fcardName: {
+    fontSize: r(15),
+    fontFamily: 'Lora_700Bold', // Premium serif font matching user image
+    color: '#1A1A1A',
+    marginTop: r(6),
+    marginBottom: r(2),
+  },
+  fcardPrice: {
+    fontSize: r(13),
+    color: '#888888', // Muted gray color matching user image
+    fontFamily: 'Poppins_500Medium',
+  },
+  topRightControl: {
+    position: 'absolute',
+    top: r(8),
+    right: r(8),
+    zIndex: 20,
+  },
+  addBtnTopRight: {
+    width: r(28),
+    height: r(28),
+    borderRadius: r(14),
+    backgroundColor: COLORS.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOpacity: 0.15,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
       },
-      android: { elevation: 8 },
+      android: { elevation: 2 },
     }),
   },
-  cardLeft: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'flex-start',
-    zIndex: 2,
-  },
-  timeBadge: {
+  premiumQtyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignSelf: 'flex-start',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginBottom: 6,
-    gap: 4,
-  },
-  timeBadgeIcon: {
-    fontSize: 11,
-  },
-  timeBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  deliveryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignSelf: 'flex-start',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginBottom: 10,
-    gap: 4,
-  },
-  deliveryBadgeIcon: {
-    fontSize: 11,
-  },
-  deliveryBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  cardContent: {
-    flex: 1,
-  },
-  cardName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 4,
-    lineHeight: 20,
-  },
-  cardPrice: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
-  specialOffer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  specialOfferIcon: {
-    fontSize: 10,
-  },
-  specialOfferText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  discountText: {
-    color: T.accent,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  cartCircleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: T.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  cartCircleBtnText: {
-    fontSize: 16,
-  },
-  cardImageContainer: {
-    width: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    overflow: 'visible',
-    marginTop: -30,
-    marginRight: -10,
-    zIndex: 3,
-  },
-  cardImage: {
-    width: 160,
-    height: 160,
-    resizeMode: 'contain',
-  },
-  weightBadge: {
-    position: 'absolute',
-    top: 20,
-    right: 16,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  weightText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  heartBtn: {
-    position: 'absolute',
-    bottom: 20,
-    right: 12,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: T.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: COLORS.orange,
+    borderRadius: r(14),
+    paddingHorizontal: r(6),
+    height: r(28),
+    gap: r(4),
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.12,
-        shadowRadius: 6,
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  pillQtyBtn: {
+    width: r(18),
+    height: r(18),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillQtyText: {
+    color: '#FFFFFF',
+    fontSize: r(13),
+    fontWeight: '700',
+  },
+  pillQtyNum: {
+    color: '#FFFFFF',
+    fontSize: r(11),
+    fontWeight: '700',
+    minWidth: r(14),
+    textAlign: 'center',
+  },
+  addBtnTxt: {
+    fontSize: r(18),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: -r(2),
+  },
+
+  // Best Prices Horizontal Scroll Styles
+  bestPricesContainer: {
+    width: '100%',
+    marginBottom: r(16),
+  },
+  bestPricesRow: {
+    paddingLeft: r(16),
+    paddingRight: r(8),
+    gap: r(14),
+  },
+  bestPriceCardContainer: {
+    width: r(140),
+  },
+  bestPriceCard: {
+    width: r(140),
+    height: r(140),
+    borderRadius: r(16),
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowRadius: 5,
         shadowOffset: { width: 0, height: 2 },
       },
-      android: { elevation: 4 },
+      android: { elevation: 1 },
     }),
   },
-  heartBtnActive: {
-    backgroundColor: T.surface,
-  },
-  heartIcon: {
-    fontSize: 15,
-  },
-  ratingBadgeCard: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    backgroundColor: '#3D3D4E',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    zIndex: 4,
-  },
-  ratingBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  popularQtyControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: T.accent,
-    borderRadius: 30,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 10,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  popularSmallBtn: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  popularSmallBtnText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '800',
-    marginTop: -2,
-  },
-  popularQtyText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
-  // ── Menu Grid ──
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 12,
-  },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: T.text },
-  seeAll: { fontSize: 13, fontWeight: '600', color: T.sub },
-  foodGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: 16, gap: 14,
-  },
-  fcard: {
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    overflow: 'hidden',
-    ...shadow(4),
-    padding: 8,
-  },
-  fcardImg: {
-    width: '100%', aspectRatio: 1.1,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    position: 'relative',
-  },
-  fcardImage: {
-    width: '85%',
-    height: '85%',
+  bestPriceCardImage: {
+    width: '80%',
+    height: '80%',
     resizeMode: 'contain',
   },
-  likeBtn: {
-    position: 'absolute', top: 8, right: 8,
-    width: 28, height: 28,
-    alignItems: 'center', justifyContent: 'center',
-    zIndex: 10,
-  },
-  likeTxt: { fontSize: 20 },
-  fcardBody: { paddingTop: 10, paddingHorizontal: 4 },
-  fcardName: { fontSize: 14, fontWeight: '700', color: '#1C1C2E', marginBottom: 4 },
-  fcardShop: { fontSize: 11, color: '#9CA3AF', fontWeight: '400', marginBottom: 10 },
-  fcardFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  fcardPrice: { fontSize: 16, fontWeight: '800', color: '#1C1C2E' },
-  qtyControlRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  smallQtyBtn: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  smallQtyBtnText: { color: '#111111', fontWeight: 'bold', fontSize: 12 },
-  qtyCardText: { color: '#111111', fontWeight: '700', fontSize: 12 },
-  addBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#CCFF00',
-    alignItems: 'center', justifyContent: 'center',
-    ...shadow(2),
-  },
-  addBtnTxt: { fontSize: 18, fontWeight: '700', color: '#111111', lineHeight: 22 },
-  empty: { flex: 1, paddingVertical: 32, alignItems: 'center', width: '100%' },
-  emptyTxt: { color: T.sub, fontSize: 14 },
-
-  // ── Restaurants ──
-  restList: { paddingHorizontal: 16, gap: 12, paddingBottom: 8 },
-  rcard: {
-    backgroundColor: T.surface,
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
+  bestPriceAddBtn: {
+    position: 'absolute',
+    top: r(8),
+    right: r(8),
+    width: r(28),
+    height: r(28),
+    borderRadius: r(14),
+    backgroundColor: '#f49851', // Primary Orange
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
-    width: 260,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.07,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
       },
-      android: { elevation: 3 },
+      android: { elevation: 2 },
     }),
   },
-  rcardThumb: {
-    width: 60, height: 60, borderRadius: 14,
-    backgroundColor: T.accentBg,
-    alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
-  rcardEmoji: { fontSize: 28 },
-  rcardInfo: { flex: 1 },
-  rcardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  freshnessTag: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  freshnessText: {
-    fontSize: 9,
-    color: T.green,
-    fontWeight: '600',
-  },
-  rcardStarBadge: {
-    backgroundColor: '#FFF9EB',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  rcardStarBadgeText: {
-    fontSize: 10,
+  bestPriceAddBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: r(18),
     fontWeight: '700',
-    color: '#D97706',
+    marginTop: -r(2),
   },
-  rcardName: { fontSize: 14, fontWeight: '700', color: T.text, marginBottom: 2 },
-  rcardType: { fontSize: 11, color: T.sub, fontWeight: '400', marginBottom: 6 },
-  rcardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rcardDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#D1D5DB' },
-  rcardTime: { fontSize: 11, color: T.sub, fontWeight: '500' },
-  freeBadge: { backgroundColor: T.greenBg, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  freeTxt: { fontSize: 10, fontWeight: '700', color: T.green },
+  bestPriceCardBody: {
+    paddingTop: r(8),
+    paddingHorizontal: r(2),
+  },
+  bestPriceCardName: {
+    fontSize: r(14),
+    fontFamily: 'Lora_700Bold',
+    color: '#1A1A1A',
+    marginBottom: r(2),
+  },
+  bestPriceCardPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: r(6),
+  },
+  bestPriceSlashedPrice: {
+    fontSize: r(11),
+    color: '#A0A0A0',
+    textDecorationLine: 'line-through',
+  },
+  bestPriceOriginalPrice: {
+    fontSize: r(14),
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+
+  // Empty state
+  empty: {
+    flex: 1,
+    paddingVertical: r(32),
+    alignItems: 'center',
+    width: '100%',
+  },
+  emptyTxt: {
+    color: COLORS.subText,
+    fontSize: r(13),
+  },
 });

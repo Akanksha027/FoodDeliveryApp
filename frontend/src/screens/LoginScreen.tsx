@@ -16,7 +16,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { useFonts, Poppins_900Black } from '@expo-google-fonts/poppins';
 import { supabase } from '../lib/supabase';
 import { storeSession } from '../utils/session';
 
@@ -32,24 +31,29 @@ const ACTUAL_LAYOUT_W = isWeb ? Math.min(SW, LAYOUT_MAX_W) : SW;
 export const LoginScreen = ({ navigation }: any) => {
   const navigated = useRef(false); // prevent double navigation on re-render
 
-  const [fontsLoaded] = useFonts({
-    Poppins_900Black,
-  });
-
-  const handleUserRouting = async (user: any, accessToken: string) => {
+  const handleUserRouting = async (user: any, accessToken: string, event: string) => {
     if (navigated.current) return; // guard against calling twice
     navigated.current = true;
 
     const role = user.email === ADMIN_EMAIL ? 'owner' : 'customer';
     await storeSession({ access_token: accessToken, role });
-    navigation.replace(role === 'owner' ? 'OwnerDashboard' : 'CustomerDashboard');
+    
+    if (role === 'owner') {
+      navigation.replace('OwnerDashboard');
+    } else {
+      if (event === 'INITIAL_SESSION') {
+        navigation.replace('CustomerDashboard');
+      } else {
+        navigation.replace('Onboarding');
+      }
+    }
   };
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-          await handleUserRouting(session.user, session.access_token);
+          await handleUserRouting(session.user, session.access_token, event);
         }
       }
     );
@@ -154,13 +158,7 @@ export const LoginScreen = ({ navigation }: any) => {
     }
   };
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#FF3D16', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
-  }
+
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
@@ -169,8 +167,9 @@ export const LoginScreen = ({ navigation }: any) => {
 
         {/* Title */}
         <View style={styles.titleContainer}>
+
           <Text style={styles.welcomeTitle}>Welcome to</Text>
-          <Text style={styles.welcomeTitleAccent}>Food Zone</Text>
+          <Text style={styles.welcomeTitleAccent}>Sandwiches</Text>
         </View>
 
         {/* Big Burger Asset Image */}
@@ -255,6 +254,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 65,
   },
+  logoImage: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    marginBottom: 16,
+  },
   welcomeTitle: {
     fontFamily: 'Poppins_900Black',
     fontSize: 52,
@@ -304,6 +309,7 @@ const styles = StyleSheet.create({
     color: '#1C1C2E',
     fontSize: 16,
     fontWeight: '800',
+    fontFamily: 'Poppins',
   },
   outlineButton: {
     borderWidth: 1.5,
@@ -319,6 +325,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+    fontFamily: 'Poppins',
   },
   disclaimer: {
     color: 'rgba(255,255,255,0.7)',
