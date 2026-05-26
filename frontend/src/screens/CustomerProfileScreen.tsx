@@ -122,9 +122,18 @@ export const CustomerProfileScreen = ({
           paddingTop: 8,
           paddingBottom: 16,
         }}>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#1A1A1A', letterSpacing: -0.3 }}>
-            Profile
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity 
+              onPress={() => navigation?.navigate?.('CustomerDashboard', { tab: 'home' })}
+              style={{ marginRight: 12, paddingVertical: 4 }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back-outline" size={24} color="#1A1A1A" />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 24, fontWeight: '700', color: '#1A1A1A', letterSpacing: -0.3 }}>
+              Profile
+            </Text>
+          </View>
           <TouchableOpacity style={{
             width: 40,
             height: 40,

@@ -1,10 +1,10 @@
-// src/screens/OwnerDashboard.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, RefreshControl, Platform
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { clearSession } from '../utils/session';
@@ -356,7 +356,16 @@ export const OwnerDashboard = ({ navigation }: any) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>👑 Admin Dashboard</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={handleLogout}
+            style={{ marginRight: 12, paddingVertical: 4 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>👑 Admin Dashboard</Text>
+        </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>

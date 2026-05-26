@@ -65,9 +65,18 @@ export const CustomerFavoritesScreen = ({
 
       {/* Header Container */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.tabTitle}>My Favorites</Text>
-          <Text style={styles.tabSub}>Your curated loved selections</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={() => navigation?.navigate?.('CustomerDashboard', { tab: 'home' })}
+            style={{ marginRight: r(12), paddingVertical: r(4) }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back-outline" size={r(24)} color="#1A1A1A" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.tabTitle}>My Favorites</Text>
+            <Text style={styles.tabSub}>Your curated loved selections</Text>
+          </View>
         </View>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>

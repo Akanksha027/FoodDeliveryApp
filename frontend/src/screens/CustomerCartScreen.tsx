@@ -1,4 +1,3 @@
-// src/screens/CustomerCartScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -13,6 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -56,17 +56,19 @@ export const CustomerCartScreen = ({
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       {/* ── HEADER ── */}
       <View style={s.header}>
-        <Text style={s.headerTitle}>
-          Cart,{' '}
-          <Text style={s.headerCount}>{cart.length} items</Text>
-        </Text>
-        <TouchableOpacity
-          style={s.closeBtn}
-          onPress={() => setActiveNav('home')}
-          activeOpacity={0.7}
-        >
-          <Text style={s.closeBtnTxt}>×</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={() => setActiveNav('home')}
+            style={{ marginRight: 12, paddingVertical: 4 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back-outline" size={24} color="#1A1A1A" />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>
+            Cart,{' '}
+            <Text style={s.headerCount}>{cart.length} items</Text>
+          </Text>
+        </View>
       </View>
 
       {cart.length === 0 ? (

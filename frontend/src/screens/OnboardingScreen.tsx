@@ -11,6 +11,7 @@ import {
   FlatList,
   Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -70,6 +71,17 @@ export const OnboardingScreen = ({ navigation }: any) => {
     navigation?.replace?.('CustomerDashboard');
   };
 
+  const handleBack = () => {
+    if (currentIndex > 0) {
+      const prev = currentIndex - 1;
+      flatListRef.current?.scrollToIndex({ index: prev, animated: true });
+      setCurrentIndex(prev);
+      animateProgress(prev);
+    } else {
+      navigation?.replace?.('Login');
+    }
+  };
+
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
@@ -103,8 +115,11 @@ export const OnboardingScreen = ({ navigation }: any) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={DARK_BG} translucent />
 
-      {/* Top bar: progress + skip */}
+      {/* Top bar: back + progress + skip */}
       <SafeAreaView style={styles.topBar}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="arrow-back-outline" size={24} color={WHITE} />
+        </TouchableOpacity>
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
         </View>
@@ -146,6 +161,10 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingHorizontal: 20,
     gap: 12,
+  },
+  backBtn: {
+    paddingVertical: 4,
+    paddingRight: 8,
   },
   progressTrack: {
     flex: 1,
