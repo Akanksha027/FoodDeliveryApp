@@ -248,14 +248,7 @@ export const CustomerProfileScreen = ({
 
         {/* Delivery Addresses */}
         <TouchableOpacity
-          onPress={() => Alert.alert(
-            'Manage Addresses',
-            `You have ${addresses.length} address(es).`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Add New', onPress: () => setAddressModalVisible(true) },
-            ]
-          )}
+          onPress={() => setAddressModalVisible(true)}
           activeOpacity={0.7}
           style={{
             backgroundColor: '#FFFFFF',

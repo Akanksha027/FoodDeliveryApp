@@ -788,7 +788,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
   const handleAddAddress = async () => {
     if (!currentUser) return;
     if (!receiverName || !phoneNumber || !addressLine1 || !city || !state || !postalCode) {
-      Alert.alert('Missing Fields', 'Please fill in all required fields.');
+      showToast('⚠️ Please fill in all required fields.');
       return;
     }
 
@@ -823,9 +823,9 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
         setSelectedAddressId(defaultAddr.id);
       }
 
-      Alert.alert('Address Added', 'Your delivery address was successfully created!');
+      showToast('✅ Address saved successfully!');
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not add address');
+      showToast(`❌ Error: ${e.message || 'Could not add address'}`);
     }
   };
 
@@ -839,19 +839,20 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
         const nextAddr = addressData.find((a: any) => a.is_default) || addressData[0];
         setSelectedAddressId(nextAddr ? nextAddr.id : null);
       }
+      showToast('🗑️ Address deleted successfully!');
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not delete address');
+      showToast(`❌ Error: ${e.message || 'Could not delete address'}`);
     }
   };
 
   const handleCheckout = async () => {
     if (!currentUser) return;
     if (cart.length === 0) {
-      Alert.alert('Cart is empty', 'Add delicious items to place your order!');
+      showToast('🛒 Your cart is empty!');
       return;
     }
     if (!selectedAddressId) {
-      Alert.alert('Address Required', 'Please add a delivery address first in the Profile tab.');
+      showToast('📍 Please add a delivery address first!');
       setActiveNav('profile');
       return;
     }
