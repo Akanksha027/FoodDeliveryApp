@@ -14,28 +14,28 @@ import {
 
 const { width, height } = Dimensions.get('window');
 
-const ORANGE = '#f49851';
+const ORANGE = '#ffd7ba';
 const WHITE = '#ffffff';
-const DARK_BG = '#3a3a2e';
+const DARK_BG = '#F49851';
 
 const slides = [
   {
     id: '1',
-    image: require('../../assets/slide1.png'),
+    image: require('../../assets/homeBurger.png'),
     title: 'Order great food\nnear you with Foodly !',
     subtitle: 'Fast, fresh meals delivered to you',
     buttonText: 'Get Started',
   },
   {
     id: '2',
-    image: require('../../assets/slide2.png'),
+    image: require('../../assets/CHEF.png'),
     title: 'Choose from hundreds\nof delicious meals !',
     subtitle: 'Browse menus from top local restaurants',
     buttonText: 'Next',
   },
   {
     id: '3',
-    image: require('../../assets/slide3.png'),
+    image: require('../../assets/fries.png'),
     title: 'Fast delivery right\nto your door !',
     subtitle: 'Track your order in real time, every step',
     buttonText: "Let's Go",
@@ -77,11 +77,11 @@ export const OnboardingScreen = ({ navigation }: any) => {
 
   const renderSlide = ({ item }: any) => (
     <View style={styles.slide}>
-      {/* Full screen image */}
+      {/* Centered smaller dish image */}
       <Image
         source={item.image}
         style={styles.heroImage}
-        resizeMode="cover"
+        resizeMode="contain"
       />
 
       {/* Dark gradient overlay at bottom */}
@@ -176,11 +176,10 @@ const styles = StyleSheet.create({
     height,
   },
   heroImage: {
-    width,
-    height,
-    position: 'absolute',
-    top: 0,
-    left: 0,
+    width: width * 0.99,
+    height: width * 0.99,
+    alignSelf: 'center',
+    marginTop: height * 0.16,
   },
 
   // Dark overlay — fades from transparent (top) to dark (bottom)
@@ -189,7 +188,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: height * 0.52,
+    height: height * 0.14,
     backgroundColor: 'transparent',
   },
 
