@@ -57,7 +57,7 @@ export const CustomerCartScreen = ({
       {/* ── HEADER ── */}
       <View style={s.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => setActiveNav('home')}
             style={{ marginRight: 12, paddingVertical: 4 }}
             activeOpacity={0.7}
@@ -87,7 +87,7 @@ export const CustomerCartScreen = ({
         <>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 100 }}
+            contentContainerStyle={{ paddingBottom: 30 }}
           >
             {/* ── DELIVERY OPTIONS ── */}
             <View style={s.deliverySection}>
@@ -179,7 +179,7 @@ export const CustomerCartScreen = ({
             <View style={s.promoSection}>
               <View style={s.promoHeader}>
                 <Text style={s.promoHeaderTitle}>Promo Code</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => { fetchCouponsForUser(); setCouponsModalVisible(true); }}
                   style={s.viewAllBtn}
                   activeOpacity={0.7}
@@ -367,7 +367,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   deliveryInfo: {
     flex: 1,

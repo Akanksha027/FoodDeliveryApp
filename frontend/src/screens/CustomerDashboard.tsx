@@ -1223,7 +1223,11 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
       <View style={[s.root, activeNav === 'fav' && { backgroundColor: '#FFFFFF' }, isWeb && s.webWrapper]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[s.scrollContent, activeNav === 'fav' && { backgroundColor: '#FFFFFF' }]}
+          contentContainerStyle={[
+            s.scrollContent,
+            activeNav === 'fav' && { backgroundColor: '#FFFFFF' },
+            (activeNav === 'cart' || activeNav === 'profile') && { paddingBottom: 0 }
+          ]}
           style={activeNav === 'fav' && { backgroundColor: '#FFFFFF' }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshData} colors={[T.accent]} />}
         >
