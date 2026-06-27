@@ -2,7 +2,7 @@
 import styles from "./DownloadSection.module.css";
 
 // Local APK file
-const APK_LINK = "/video/apl.apk";
+const APK_LINK = "/video/apk2.apk";
 
 const specs = [
   { icon: "📦", label: "Platform", value: "Android (APK)" },
