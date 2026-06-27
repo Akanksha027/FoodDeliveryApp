@@ -1,0 +1,179 @@
+.section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 100px 0;
+  background: var(--bg);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  margin-bottom: 56px;
+}
+
+.title {
+  font-size: clamp(36px, 4.5vw, 54px);
+  letter-spacing: -1.5px;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: var(--text-secondary);
+  max-width: 480px;
+  line-height: 1.7;
+}
+
+/* ——— MOSAIC GRID ——— */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cell {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cell:hover {
+  transform: scale(1.01);
+  box-shadow: var(--shadow-hover);
+}
+
+.cellLarge {
+  height: 500px;
+}
+
+.cellMedium {
+  height: 280px;
+}
+
+.cellCombined {
+  grid-column: span 2;
+}
+
+.imgWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.img {
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.5s ease;
+}
+
+.cell:hover .img {
+  transform: scale(1.03);
+}
+
+.label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 20px 14px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.labelTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.labelSub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ——— STRIP ——— */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.stripCell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.stripImgWrap {
+  position: relative;
+  height: 240px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stripCell:hover .stripImgWrap {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+.stripImg {
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.stripCell:hover .stripImg {
+  transform: scale(1.04);
+}
+
+.stripLabel {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cellLarge {
+    height: 300px;
+  }
+
+  .cellMedium {
+    height: 200px;
+  }
+
+  .strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stripImgWrap {
+    height: 140px;
+  }
+}

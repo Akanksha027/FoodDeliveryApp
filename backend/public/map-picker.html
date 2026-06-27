@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Map Picker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0F172A;
+      color: #F8FAFC;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #map {
+      flex: 1;
+      width: 100%;
+    }
+    .search-container {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+    }
+    .search-input {
+      flex: 1;
+      height: 48px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: rgba(15, 23, 42, 0.9);
+      color: #fff;
+      padding: 0 20px;
+      font-size: 15px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    .search-input:focus {
+      border-color: #6366F1;
+      box-shadow: 0 4px 24px rgba(99, 102, 241, 0.3);
+    }
+    .search-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 24px;
+      border: none;
+      background-color: #6366F1;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+      transition: transform 0.2s ease;
+    }
+    .search-btn:active {
+      transform: scale(0.95);
+    }
+    .info-card {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      right: 24px;
+      z-index: 1000;
+      background-color: rgba(15, 23, 42, 0.95);
+      border-radius: 20px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    .info-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6366F1;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .info-address {
+      font-size: 15px;
+      font-weight: 600;
+      color: #F8FAFC;
+      line-height: 20px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .info-coords {
+      font-size: 12px;
+      color: #94A3B8;
+      margin-bottom: 16px;
+    }
+    .confirm-btn {
+      width: 100%;
+      height: 50px;
+      border-radius: 25px;
+      border: none;
+      background-color: #CCFF00;
+      color: #0F172A;
+      font-size: 15px;
+      font-weight: 850;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(204, 255, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+    .confirm-btn:hover {
+      background-color: #d6ff33;
+    }
+    .confirm-btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="search-container">
+    <input type="text" id="address-input" class="search-input" placeholder="Search address in Ghaziabad..." />
+    <button onclick="searchAddress()" class="search-btn">🔍</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="info-card">
+    <div class="info-title">📍 Selected Kitchen Location</div>
+    <div id="address-text" class="info-address">Detecting address...</div>
+    <div id="coords-text" class="info-coords">Lat: 28.6692, Lng: 77.4538</div>
+    <button onclick="confirmLocation()" class="confirm-btn">Confirm Kitchen Location</button>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialize Map at Ghaziabad center
+    const defaultLat = 28.6692;
+    const defaultLng = 77.4538;
+    
+    const map = L.map('map', {
+      zoomControl: false
+    }).setView([defaultLat, defaultLng], 14);
+
+    // Dark Mode CartoDB Tile Layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    // Draggable Marker with custom icon
+    let selectedLat = defaultLat;
+    let selectedLng = defaultLng;
+    let selectedAddress = 'Ghaziabad, Uttar Pradesh, India';
+
+    const pinIcon = L.divIcon({
+      html: '<span style="font-size: 36px; line-height: 1;">📍</span>',
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      className: 'custom-pin'
+    });
+
+    const marker = L.marker([defaultLat, defaultLng], {
+      draggable: true,
+      icon: pinIcon
+    }).addTo(map);
+
+    // Reverse Geocode initially
+    reverseGeocode(defaultLat, defaultLng);
+
+    // Map Click Handler to Move Pin
+    map.on('click', function(e) {
+      marker.setLatLng(e.latlng);
+      updateLocation(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Marker Drag Handler
+    marker.on('dragend', function(e) {
+      const position = marker.getLatLng();
+      updateLocation(position.lat, position.lng);
+    });
+
+    function updateLocation(lat, lng) {
+      selectedLat = parseFloat(lat.toFixed(6));
+      selectedLng = parseFloat(lng.toFixed(6));
+      document.getElementById('coords-text').innerText = `Lat: ${selectedLat}, Lng: ${selectedLng}`;
+      reverseGeocode(lat, lng);
+    }
+
+    // Reverse Geocoding using free OpenStreetMap Nominatim API
+    function reverseGeocode(lat, lng) {
+      document.getElementById('address-text').innerText = 'Retrieving address details...';
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.display_name) {
+            selectedAddress = data.display_name;
+            // Clean up address to be more readable
+            const parts = data.address;
+            const street = parts.road || parts.suburb || parts.neighbourhood || '';
+            const city = parts.city || parts.town || parts.state_district || '';
+            const state = parts.state || '';
+            
+            let cleanAddress = data.display_name;
+            if (street && city) {
+              cleanAddress = `${street}, ${city}`;
+            } else if (city) {
+              cleanAddress = `${city}, ${state}`;
+            }
+            
+            selectedAddress = cleanAddress;
+            document.getElementById('address-text').innerText = cleanAddress;
+          } else {
+            selectedAddress = `Custom coordinates (${lat}, ${lng})`;
+            document.getElementById('address-text').innerText = selectedAddress;
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          selectedAddress = `Coordinates (${lat}, ${lng})`;
+          document.getElementById('address-text').innerText = selectedAddress;
+        });
+    }
+
+    // Geocoding Address Search
+    function searchAddress() {
+      const input = document.getElementById('address-input').value;
+      if (!input.trim()) return;
+
+      document.getElementById('address-text').innerText = 'Searching address...';
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&limit=1`)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            const result = data[0];
+            const lat = parseFloat(result.lat);
+            const lng = parseFloat(result.lon);
+            
+            map.flyTo([lat, lng], 16);
+            marker.setLatLng([lat, lng]);
+            updateLocation(lat, lng);
+          } else {
+            document.getElementById('address-text').innerText = 'Address not found. Please try a different query.';
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('address-text').innerText = 'Search failed. Please try again.';
+        });
+    }
+
+    // Support enter key on search input
+    document.getElementById('address-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchAddress();
+      }
+    });
+
+    // Send location back to React Native Parent Context
+    function confirmLocation() {
+      const payload = {
+        type: 'LOCATION_SELECTED',
+        latitude: selectedLat,
+        longitude: selectedLng,
+        address: selectedAddress
+      };
+      
+      const payloadStr = JSON.stringify(payload);
+      
+      // Communicate to Web Parent Window
+      if (window.parent) {
+        window.parent.postMessage(payloadStr, '*');
+      }
+      
+      // Communicate to React Native Webview if running inside native app
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(payloadStr);
+      }
+    }
+  </script>
+</body>
+</html>

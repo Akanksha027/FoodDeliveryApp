@@ -1,0 +1,112 @@
+/* ─── Footer ─────────────────────────────────────────────────────── */
+.footer {
+  background: #000;
+  padding: 60px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="light"] .footer {
+  background: #0a0a0a;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top nav columns */
+.topRow {
+  display: flex;
+  gap: 80px;
+  margin-bottom: 32px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.colHead {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 4px;
+}
+
+.link {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  width: fit-content;
+}
+
+.link:hover {
+  color: #fff;
+}
+
+/* Big name */
+.bigName {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(80px, 18vw, 220px);
+  font-weight: 800;
+  letter-spacing: -6px;
+  color: #fff;
+  line-height: 0.9;
+  user-select: none;
+  margin-bottom: 0;
+  /* slight padding so it doesn't clip */
+  padding-bottom: 8px;
+}
+
+.dot {
+  color: var(--accent, #FF3D16);
+}
+
+/* Bottom bar */
+.bottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 18px 0 24px;
+  margin-top: 8px;
+}
+
+.copy {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.role {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.01em;
+}
+
+.nameAccent {
+  color: var(--accent, #FF3D16);
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .bigName {
+    font-size: clamp(60px, 15vw, 100px);
+    letter-spacing: -3px;
+  }
+
+  .topRow {
+    gap: 40px;
+  }
+
+  .bottomRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
