@@ -23,10 +23,10 @@ export default function Navbar() {
   return (
     <header className={`${styles.header} ${scrolled ? styles.scrolled : ""}`}>
       <div className={`container ${styles.nav}`}>
-        <a href="#">
-
-          <span>
-            Sand<span className={styles.logoBrand}>wiches</span>
+        <a href="#" className={styles.logo}>
+          <span className={styles.logoIcon}></span>
+          <span className={styles.logoText}>
+            sandwiches<span className={styles.logoBrand}></span>
           </span>
         </a>
 
