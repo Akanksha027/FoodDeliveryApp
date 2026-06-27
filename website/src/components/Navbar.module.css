@@ -1,0 +1,134 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 18px 0;
+  transition: all 0.3s ease;
+}
+
+.header.scrolled {
+  background: var(--nav-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logoIcon {
+  font-size: 18px;
+}
+
+.logoText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.logoBrand {
+  color: var(--accent);
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.link {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: var(--text-primary);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.bar {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: var(--text-primary);
+  border-radius: 99px;
+  transition: all 0.3s ease;
+}
+
+.open1 { transform: rotate(45deg) translate(4.5px, 4.5px); }
+.open2 { opacity: 0; }
+.open3 { transform: rotate(-45deg) translate(4.5px, -4.5px); }
+
+.mobileMenu {
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px 0 16px;
+  background: var(--nav-bg);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+}
+
+.mobileLink {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border);
+  transition: color 0.2s;
+}
+
+.mobileLink:hover {
+  color: var(--accent);
+}
+
+.mobileCta {
+  margin: 16px 32px 0;
+  align-self: flex-start;
+}
+
+@media (max-width: 768px) {
+  .links { display: none; }
+  .hamburger { display: flex; }
+  .mobileMenu { display: flex; }
+  .right a { display: none; }
+  .right a.keepVisible { display: flex; }
+}
