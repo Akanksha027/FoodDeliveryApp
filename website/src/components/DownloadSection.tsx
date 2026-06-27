@@ -23,7 +23,7 @@ export default function DownloadSection() {
           <div className={styles.left}>
             <span className="badge">📲 Get the App</span>
             <h2 className={styles.title}>
-              Download <span className="gradient-text">QuickBite</span>
+              Download <span className="gradient-text">Sandwiches</span>
               <br />for free, right now.
             </h2>
             <p className={styles.desc}>

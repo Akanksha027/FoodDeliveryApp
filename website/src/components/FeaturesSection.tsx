@@ -79,7 +79,7 @@ const content: Record<string, { title: string; subtitle: string; sections: { hea
   tech: {
     title: "Tech Stack — Built for Scale",
     subtitle:
-      "QuickBite is built on a modern, production-grade stack — React Native for cross-platform mobile, Supabase for real-time backend, and Expo for easy distribution.",
+      "Sandwiches is built on a modern, production-grade stack — React Native for cross-platform mobile, Supabase for real-time backend, and Expo for easy distribution.",
     sections: [
       {
         heading: "Mobile App (Frontend)",
@@ -112,9 +112,9 @@ const content: Record<string, { title: string; subtitle: string; sections: { hea
     ],
   },
   about: {
-    title: "About QuickBite",
+    title: "About Sandwiches",
     subtitle:
-      "QuickBite started as a full-stack project to solve real problems faced by small restaurant businesses — building something production-ready rather than a prototype.",
+      "Sandwiches started as a full-stack project to solve real problems faced by small restaurant businesses — building something production-ready rather than a prototype.",
     sections: [
       {
         heading: "Purpose",

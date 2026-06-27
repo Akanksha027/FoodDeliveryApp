@@ -31,7 +31,7 @@ export default function ContactSection() {
               Want this app<br />built for your<br />restaurant?
             </h2>
             <p className={styles.desc}>
-              I&apos;m <strong>Akanksha</strong>, the developer behind QuickBite.
+              I&apos;m <strong>Akanksha</strong>, the developer behind Sandwiches.
               I build custom, production-ready food delivery apps tailored to your
               business — from menu to payment to live order tracking.
             </p>
