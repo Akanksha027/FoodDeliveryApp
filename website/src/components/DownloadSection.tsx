@@ -1,9 +1,8 @@
 "use client";
 import styles from "./DownloadSection.module.css";
 
-// Google Drive folder containing the APK
-const APK_LINK =
-  "https://drive.google.com/drive/folders/1K2cCD0wOt78IsLl6jG8QLlnnka1s7nH1";
+// Local APK file
+const APK_LINK = "/video/apl.apk";
 
 const specs = [
   { icon: "📦", label: "Platform", value: "Android (APK)" },
@@ -37,8 +36,7 @@ export default function DownloadSection() {
                 href={APK_LINK}
                 className="btn-primary"
                 id="main-download-btn"
-                target="_blank"
-                rel="noopener noreferrer"
+                download="sandwiches-app.apk"
               >
                 <span>⬇️</span> Download APK
               </a>

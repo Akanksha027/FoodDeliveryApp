@@ -8,8 +8,7 @@ interface DownloadButtonProps {
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({
-  apkUrl =
-  "https://drive.google.com/drive/folders/1K2cCD0wOt78IsLl6jG8QLlnnka1s7nH1",
+  apkUrl = "/video/apl.apk",
 }) => {
   const [status, setStatus] = useState<"idle" | "installing" | "installed">(
     "idle"
@@ -25,8 +24,13 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
 
     setStatus("installing");
 
-    // Opens Google Drive folder in a new tab
-    window.open(apkUrl, "_blank", "noopener,noreferrer");
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement("a");
+    link.href = apkUrl;
+    link.download = "sandwiches-app.apk";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
     setTimeout(() => {
       setStatus("installed");
