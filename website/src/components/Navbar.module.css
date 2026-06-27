@@ -131,4 +131,5 @@
   .mobileMenu { display: flex; }
   .right a { display: none; }
   .right a.keepVisible { display: flex; }
+  .desktopOnly { display: none; }
 }

@@ -129,6 +129,7 @@
 }
 
 @media (max-width: 640px) {
+  .tabs { justify-content: flex-start; padding: 0 16px; }
   .grid { grid-template-columns: 1fr; gap: 28px; }
   .tab { padding: 14px 16px; font-size: 12px; }
   .title { font-size: 32px; }

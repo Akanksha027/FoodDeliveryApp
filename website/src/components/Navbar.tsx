@@ -40,7 +40,9 @@ export default function Navbar() {
 
         <div className={styles.right}>
           <ThemeToggle />
-          <DownloadButton />
+          <div className={styles.desktopOnly}>
+            <DownloadButton />
+          </div>
           <button
             className={styles.hamburger}
             onClick={() => setMenuOpen(!menuOpen)}
