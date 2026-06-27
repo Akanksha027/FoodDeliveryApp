@@ -11,7 +11,7 @@ import { clearSession } from '../utils/session';
 import { Loader } from '../components/Loader';
 
 // Direct Vercel URL since EXPO_PUBLIC vars are not available on Expo Web bundle
-const BACKEND = 'https://backend-gm7wl6dtx-akanksha-singhs-projects-40f191a2.vercel.app';
+const BACKEND = 'https://backend-akanksha-singhs-projects-40f191a2.vercel.app';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#F59E0B',
@@ -881,7 +881,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
             {/* Render the interactive Leaflet Map Picker on web natively */}
             {Platform.OS === 'web' ? (
               <iframe
-                src="https://backend-gm7wl6dtx-akanksha-singhs-projects-40f191a2.vercel.app/map-picker.html"
+                src="https://backend-akanksha-singhs-projects-40f191a2.vercel.app/map-picker.html"
                 style={{
                   width: '100%',
                   height: 520,
@@ -893,7 +893,7 @@ export const OwnerDashboard = ({ navigation }: any) => {
             ) : (
               <View style={{ width: '100%', height: 420, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 16 }}>
                 <WebView
-                  source={{ uri: 'https://backend-gm7wl6dtx-akanksha-singhs-projects-40f191a2.vercel.app/map-picker.html' }}
+                  source={{ uri: 'https://backend-akanksha-singhs-projects-40f191a2.vercel.app/map-picker.html' }}
                   style={{ flex: 1 }}
                   onMessage={async (event) => {
                     try {

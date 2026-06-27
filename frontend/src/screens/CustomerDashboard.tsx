@@ -312,7 +312,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
   const fetchActiveKitchen = async () => {
     try {
-      const res = await fetch('https://backend-gm7wl6dtx-akanksha-singhs-projects-40f191a2.vercel.app/api/kitchen', {
+      const res = await fetch('https://backend-akanksha-singhs-projects-40f191a2.vercel.app/api/kitchen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
       });

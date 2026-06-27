@@ -8,7 +8,7 @@ interface DownloadButtonProps {
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({
-  apkUrl = "/video/apk2.apk",
+  apkUrl = "/video/sandwiches.apk",
 }) => {
   const [status, setStatus] = useState<"idle" | "installing" | "installed">(
     "idle"

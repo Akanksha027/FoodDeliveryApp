@@ -3,7 +3,7 @@
 
 // On native (iOS/Android), always use the full backend URL.
 // On web, the browser needs a full absolute URL// Use the deployed Vercel URL
-const BACKEND = 'https://backend-gm7wl6dtx-akanksha-singhs-projects-40f191a2.vercel.app';
+const BACKEND = 'https://backend-akanksha-singhs-projects-40f191a2.vercel.app';
 
 const defaultHeaders = {
   'Content-Type': 'application/json',
