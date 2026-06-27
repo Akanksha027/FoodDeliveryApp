@@ -312,7 +312,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
 
   const fetchActiveKitchen = async () => {
     try {
-      const res = await fetch('https://food-delivery-app-beta-wheat.vercel.app/api/kitchen', {
+      const res = await fetch('https://backend-gm7wl6dtx-akanksha-singhs-projects-40f191a2.vercel.app/api/kitchen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
       });
@@ -1312,7 +1312,7 @@ export const CustomerDashboard = ({ navigation, route }: any) => {
           {NAV_ITEMS.map(nav => {
             const isActive = activeNav === nav.id;
             const iconColor = isActive ? '#f49851' : '#1A1A1A';
-            
+
             let iconComponent = null;
             if (nav.id === 'home') {
               iconComponent = <Feather name="home" size={22} color={iconColor} />;
@@ -2332,14 +2332,14 @@ const s = StyleSheet.create({
     right: 0,
     zIndex: 9999,
   },
-  navItem: { 
-    alignItems: 'center', 
+  navItem: {
+    alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
     height: '100%',
   },
   navIconWrap: {
-    alignItems: 'center', 
+    alignItems: 'center',
     justifyContent: 'center',
     height: 28,
   },
@@ -2349,14 +2349,14 @@ const s = StyleSheet.create({
     height: 24,
     resizeMode: 'contain',
   },
-  navLabel: { 
-    fontSize: 11, 
-    fontWeight: '500', 
+  navLabel: {
+    fontSize: 11,
+    fontWeight: '500',
     color: '#8E8E93',
     marginTop: 4,
     fontFamily: 'Poppins_500Medium',
   },
-  navLabelActive: { 
+  navLabelActive: {
     color: '#f49851', // Orange active color matching screenshot
     fontWeight: '600',
   },
