@@ -37,7 +37,7 @@ export default function HeroSection() {
           </p>
 
           <div className={`${styles.actions} ${styles.fadeUp}`} style={{ animationDelay: "180ms" }}>
-            <DownloadButton apkUrl="#" />
+            <DownloadButton />
             <Button href="#features" id="hero-features-btn">
               See Features
             </Button>

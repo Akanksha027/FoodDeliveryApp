@@ -65,6 +65,12 @@ const StyledWrapper = styled.div`
    box-shadow: 0 0.3em rgba(0, 0, 0, 0.15);
   }
 
+  [data-theme="dark"] .slider {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0.15em rgba(255, 255, 255, 0.05);
+  }
+
   [data-theme="dark"] .slider:before {
     background-color: #FF3D16;
     box-shadow: 0 0.3em rgba(255, 61, 22, 0.3);

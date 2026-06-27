@@ -40,7 +40,7 @@ export default function Navbar() {
 
         <div className={styles.right}>
           <ThemeToggle />
-          <DownloadButton apkUrl="#" />
+          <DownloadButton />
           <button
             className={styles.hamburger}
             onClick={() => setMenuOpen(!menuOpen)}
@@ -61,7 +61,7 @@ export default function Navbar() {
             </a>
           ))}
           <div style={{ padding: "8px 32px" }}>
-            <DownloadButton apkUrl="#" />
+            <DownloadButton />
           </div>
         </div>
       )}

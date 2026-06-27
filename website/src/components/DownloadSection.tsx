@@ -1,8 +1,9 @@
 "use client";
 import styles from "./DownloadSection.module.css";
 
-// ⬇️ Replace this with your real APK link once uploaded
-const APK_LINK = "#";
+// Google Drive folder containing the APK
+const APK_LINK =
+  "https://drive.google.com/drive/folders/1K2cCD0wOt78IsLl6jG8QLlnnka1s7nH1";
 
 const specs = [
   { icon: "📦", label: "Platform", value: "Android (APK)" },
@@ -36,7 +37,8 @@ export default function DownloadSection() {
                 href={APK_LINK}
                 className="btn-primary"
                 id="main-download-btn"
-                download
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <span>⬇️</span> Download APK
               </a>
