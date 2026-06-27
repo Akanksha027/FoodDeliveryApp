@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "fooddelivery",
-    "icon": "./assets/logo-food.png",
+    "icon": "./assets/logo-food-square.png",
     "userInterfaceStyle": "light",
     "extra": {
       "supabaseUrl": "https://uelxwqpvjdrkxsgotoia.supabase.co",
@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/logo-food.png",
+        "foregroundImage": "./assets/logo-food-square.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
